@@ -92,6 +92,7 @@
   "log.fetch.retryFailed": "Processing ${name} of page ${page} failed，retry times maxed out",
   "log.fetch.interval": "Processing ${name} of page ${page}，1 second timeout every 10 pages……",
   "log.fetch.current": "Processing ${name} of page ${page}",
+  "log.fetch.skip": "Existing records detected, skipping remaining pages for ${name}",
   "log.fetch.authTimeout": "User authentication expired, please reopen headhunting history inside the game client.",
   "log.fetch.gachaType": "Getting headhunting type, please wait",
   "log.fetch.gachaTypeOk": "Headhunting type acquired",

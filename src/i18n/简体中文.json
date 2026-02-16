@@ -92,6 +92,7 @@
   "log.fetch.retryFailed": "获取${name}第${page}页失败，已超出重试次数",
   "log.fetch.interval": "正在获取${name}第${page}页，每10页休息1秒……",
   "log.fetch.current": "正在获取${name}第${page}页",
+  "log.fetch.skip": "检测到已存在的记录，已跳过${name}剩余页面",
   "log.fetch.authTimeout": "身份认证已过期，请重新打开游戏抽卡记录",
   "log.fetch.gachaType": "正在获取寻访活动类型",
   "log.fetch.gachaTypeOk": "获取寻访活动类型成功",

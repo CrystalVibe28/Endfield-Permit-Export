@@ -92,6 +92,7 @@
   "log.fetch.retryFailed": "處理${name}第 ${page} 頁失敗，已超出重試次數",
   "log.fetch.interval": "正在處理${name}第 ${page} 頁，每 10 頁休息 1 秒…",
   "log.fetch.current": "正在處理${name}第 ${page} 頁",
+  "log.fetch.skip": "偵測到已存在的紀錄，已跳過${name}剩餘頁面",
   "log.fetch.authTimeout": "身分驗證已過期，請重新開啟遊戲尋訪紀錄。",
   "log.fetch.gachaType": "正在取得尋訪活動類型",
   "log.fetch.gachaTypeOk": "已成功取得尋訪活動類型",

@@ -259,6 +259,13 @@ const saveGryphlineData = async (uid, { characterList = [], weaponList = [], lan
                     existingData.info = loaded.info
                     if (lang) existingData.info.lang = lang
                 }
+            } else {
+                if (loaded.characterList) existingData.characterList = loaded.characterList
+                if (loaded.weaponList) existingData.weaponList = loaded.weaponList
+                if (loaded.info) {
+                    existingData.info = loaded.info
+                    if (lang) existingData.info.lang = lang
+                }
             }
         }
     } catch {}
@@ -330,7 +337,7 @@ const fetchWeaponRecord = async ({ token, lang, serverId, poolId, seqId }) => {
     return await response.json()
 }
 
-const getAllRecord = async ({ token, lang, serverId }) => {
+const getAllRecord = async ({ token, lang, serverId, existingSeqIds = new Set() }) => {
     const typeMap = new Map()
     // Populate typeMap for logging purposes
     typeMap.set('standard', i18n.parse(i18n.gacha.type.standard))
@@ -407,7 +414,21 @@ const getAllRecord = async ({ token, lang, serverId }) => {
             }
 
             if (list && list.length > 0) {
-                characterList.push(...list)
+                let foundExisting = false
+                for (const item of list) {
+                    if (existingSeqIds.has(String(item.seqId))) {
+                        foundExisting = true
+                        break
+                    }
+                    characterList.push(item)
+                }
+
+                if (foundExisting) {
+                    sendMsg(i18n.parse(i18n.log.fetch.skip, { name }))
+                    hasMore = false
+                    break
+                }
+                
                 lastSeqId = list[list.length - 1].seqId
             }
             hasMore = res.data.hasMore
@@ -490,7 +511,21 @@ const getAllRecord = async ({ token, lang, serverId }) => {
             }
 
             if (list && list.length > 0) {
-                weaponList.push(...list)
+                let foundExisting = false
+                for (const item of list) {
+                    if (existingSeqIds.has(String(item.seqId))) {
+                        foundExisting = true
+                        break
+                    }
+                    weaponList.push(item)
+                }
+
+                if (foundExisting) {
+                    sendMsg(i18n.parse(i18n.log.fetch.skip, { name }))
+                    hasMore = false
+                    break
+                }
+
                 lastSeqId = list[list.length - 1].seqId
             }
             hasMore = res.data.hasMore
@@ -522,14 +557,32 @@ const fetchData = async () => {
 
         sendMsg(`Processing account: ${uid}`)
 
-        const { characterList, weaponList } = await getAllRecord({ token, lang, serverId })
+        // Incremental update optimization: prepare existing seqIds
+        const existingSeqIds = new Set()
+        let fileName = `endfield-list-${uid}.json`
+        try {
+            const loaded = await readJSON(userDataPath, fileName)
+            if (loaded) {
+                const charList = loaded.characterList || []
+                const wepList = loaded.weaponList || []
+                charList.forEach(i => existingSeqIds.add(String(i.seqId)))
+                wepList.forEach(i => existingSeqIds.add(String(i.seqId)))
+                
+                // Also support legacy 'list' key if migrating
+                if (loaded.list) {
+                    loaded.list.forEach(i => existingSeqIds.add(String(i.seqId)))
+                }
+            }
+        } catch {}
+
+        const { characterList, weaponList } = await getAllRecord({ token, lang, serverId, existingSeqIds })
         const data = { uid, rawList: [] } // Legacy structure not used but defined
         
         // Save raw Gryphline data
         await saveGryphlineData(uid, { characterList, weaponList, lang })
         
         // Read back updated data
-        const fileName = `endfield-list-${uid}.json`
+        fileName = `endfield-list-${uid}.json`
         try {
             const loaded = await readJSON(userDataPath, fileName)
             if (loaded) { // loaded can be object with characterList/weaponList
