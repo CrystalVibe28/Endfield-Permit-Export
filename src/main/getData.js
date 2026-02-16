@@ -234,7 +234,7 @@ const processGryphlineList = ({ characterList = [], weaponList = [] }) => {
 }
 
 const saveGryphlineData = async (uid, { characterList = [], weaponList = [] }) => {
-    const fileName = `gryphline-list-${uid}.json`
+    const fileName = `endfield-list-${uid}.json`
     let existingData = { 
         info: { 
             uid, 
@@ -529,7 +529,7 @@ const fetchData = async () => {
         await saveGryphlineData(uid, { characterList, weaponList })
         
         // Read back updated data
-        const fileName = `gryphline-list-${uid}.json`
+        const fileName = `endfield-list-${uid}.json`
         try {
             const loaded = await readJSON(userDataPath, fileName)
             if (loaded) { // loaded can be object with characterList/weaponList
@@ -572,7 +572,7 @@ const readData = async () => {
     dataMap.clear()
     const files = await fs.readdir(userDataPath)
     for (let name of files) {
-        if (/^gryphline-list-.+\.json$/.test(name)) {
+        if (/^(gryphline|endfield)-list-.+\.json$/.test(name)) {
             try {
                 const data = await readJSON(userDataPath, name)
                 if (data.info && data.info.uid) {
