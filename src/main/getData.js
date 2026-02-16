@@ -233,13 +233,14 @@ const processGryphlineList = ({ characterList = [], weaponList = [] }) => {
     return result
 }
 
-const saveGryphlineData = async (uid, { characterList = [], weaponList = [] }) => {
+const saveGryphlineData = async (uid, { characterList = [], weaponList = [], lang }) => {
     const fileName = `endfield-list-${uid}.json`
     let existingData = { 
         info: { 
             uid, 
             export_timestamp: Math.floor(Date.now()/1000), 
-            app_version: app.getVersion() 
+            app_version: app.getVersion(),
+            lang: lang || config.lang
         }, 
         characterList: [],
         weaponList: []
@@ -254,11 +255,10 @@ const saveGryphlineData = async (uid, { characterList = [], weaponList = [] }) =
                 existingData.characterList = oldList.filter(item => item.charId)
                 existingData.weaponList = oldList.filter(item => item.weaponId)
                 // Use loaded info if available
-                if (loaded.info) existingData.info = loaded.info
-            } else {
-                if (loaded.characterList) existingData.characterList = loaded.characterList
-                if (loaded.weaponList) existingData.weaponList = loaded.weaponList
-                if (loaded.info) existingData.info = loaded.info
+                if (loaded.info) {
+                    existingData.info = loaded.info
+                    if (lang) existingData.info.lang = lang
+                }
             }
         }
     } catch {}
@@ -526,7 +526,7 @@ const fetchData = async () => {
         const data = { uid, rawList: [] } // Legacy structure not used but defined
         
         // Save raw Gryphline data
-        await saveGryphlineData(uid, { characterList, weaponList })
+        await saveGryphlineData(uid, { characterList, weaponList, lang })
         
         // Read back updated data
         const fileName = `endfield-list-${uid}.json`
@@ -590,6 +590,7 @@ const readData = async () => {
                     
                     const uiData = {
                         uid: uid,
+                        lang: data.info.lang || config.lang,
                         time: data.info.export_timestamp * 1000,
                         result: processedResult,
                         typeMap: new Map(),

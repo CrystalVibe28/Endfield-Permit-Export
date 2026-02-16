@@ -77,7 +77,7 @@ const start = async () => {
     const name = typeMap.get(key) || key
     const sheet = workbook.addWorksheet(name.replace(/[*?:\/\\]/g, ' '), { views: [{ state: 'frozen', ySplit: 1 }] })
     let width = [24, 14, 8, 8, 8, 8, 8]
-    if (!data.lang.includes('zh-')) {
+    if (!(data.lang || '').includes('zh-')) {
       width = [24, 32, 16, 12, 12, 12, 8]
     }
     const excelKeys = ['time', 'name', 'type', 'rank', 'total', 'pity', 'remark']
