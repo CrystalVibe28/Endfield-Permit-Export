@@ -140,15 +140,15 @@
                     >Current</span
                   >
                 </h3>
-                <div class="text-xs text-gray-500 mt-1 font-mono font-medium">
+                <!-- <div class="text-xs text-gray-500 mt-1 font-mono font-medium">
                   {{ formatDateRange(banner.startTime, banner.endTime) }}
-                </div>
+                </div> -->
               </div>
               <div class="flex items-center gap-3">
                  <!-- Spark Status -->
                  <div class="flex items-center gap-2 bg-purple-50 px-3 py-1.5 rounded-full border border-purple-100" v-if="banner.sparkStatus">
-                    <span class="text-[10px] uppercase font-bold text-purple-400">Spark (120)</span>
-                    <span class="text-xs font-bold font-mono" :class="banner.sparkStatus.used ? 'text-purple-600' : 'text-gray-600'">
+                    <span class="text-[10px] uppercase font-bold text-purple-400">{{ activeType === 'weapon' ? 'Guarantee' : 'Spark' }} ({{ activeType === 'weapon' ? 80 : 120 }})</span>
+                    <span class="text-xs font-bold font-mono text-gray-600">
                         {{ banner.sparkStatus.text }}
                     </span>
                  </div>
@@ -163,8 +163,8 @@
 
             <!-- Banner Body -->
             <div class="p-6 space-y-6">
-              <!-- Icon Summary Grid -->
-              <div class="flex flex-wrap gap-3">
+              <!-- Icon Summary Grid (Temporarily commented out) -->
+              <!-- <div class="flex flex-wrap gap-3">
                 <div
                   v-for="(item, idx) in banner.upItems"
                   :key="idx"
@@ -197,7 +197,7 @@
                     class="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-amber-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center"
                   ></div>
                 </div>
-              </div>
+              </div> -->
 
               <!-- Detailed Timeline -->
               <div class="space-y-4">
@@ -219,7 +219,8 @@
                       />
                       <span v-else>{{ record.name[0] }}</span>
                     </div>
-                    <div
+                    <!-- Status Tags (Temporarily commented out) -->
+                    <!-- <div
                       v-if="record.isUpMajor"
                       class="absolute -top-2.5 -right-2.5 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-md shadow-sm font-bold border-2 border-white z-10"
                     >UP</div>
@@ -230,7 +231,7 @@
                     <div
                       v-else
                       class="absolute -top-2.5 -right-2.5 bg-gray-400 text-white text-[10px] px-1.5 py-0.5 rounded-md shadow-sm font-bold border-2 border-white z-10"
-                    >{{ i18n?.ui?.data?.lost }}</div>
+                    >{{ i18n?.ui?.data?.lost }}</div> -->
                   </div>
 
                   <div class="flex-1 min-w-0">
@@ -331,7 +332,7 @@ const poolTypes = computed(() => {
 const activeTypeConfig = computed(() => {
   const configs = {
     special: { color: "bg-gradient-to-b from-red-500 to-orange-500", maxPity: 80 },
-    weapon: { color: "bg-gradient-to-b from-purple-500 to-indigo-500", maxPity: 80 },
+    weapon: { color: "bg-gradient-to-b from-purple-500 to-indigo-500", maxPity: 40 },
     standard: { color: "bg-gradient-to-b from-blue-500 to-cyan-500", maxPity: 80 },
     beginner: { color: "bg-gradient-to-b from-emerald-500 to-teal-500", maxPity: 40 },
     urgent: { color: "bg-gradient-to-b from-gray-500 to-slate-500", maxPity: 1 },
@@ -368,56 +369,69 @@ const activeStats = computed(() => {
 });
 
 const bannerList = computed(() => {
-  const typeEnum = poolTypeEnumMap[activeType.value] || activeType.value;
-  let relevantPools = poolsData.filter((p) => p.type === typeEnum);
-  relevantPools.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-  const banners = [];
-
-  relevantPools.forEach((pool) => {
-    const start = new Date(pool.startTime).getTime();
-    const end = new Date(pool.endTime).getTime();
-    const matchingRecordsDesc = activeRecords.value.filter((r) => {
-        if (r.gacha_id && pool.poolId) return r.gacha_id === pool.poolId;
-        const t = new Date(r.time).getTime();
-        return t >= start && t <= end;
-    });
-
-    if (matchingRecordsDesc.length === 0) return;
-
-    const ssrDetails = [];
-    const matchingRecordsAsc = [...matchingRecordsDesc].sort((a, b) => Number(a.id) - Number(b.id));
-    const paidRecordsAsc = matchingRecordsAsc.filter(r => !r.isFree);
-
-    let sparkStatus = null;
-    if (activeType.value === 'special') {
-        sparkStatus = { total: paidRecordsAsc.length, used: false, at: 0, text: `${paidRecordsAsc.length} / 120` };
-        for (let i = 0; i < paidRecordsAsc.length; i++) {
-            const r = paidRecordsAsc[i];
-            if (r.rank_type === "6" && pool.up6 && pool.up6.includes(r.name)) {
-                sparkStatus.used = true; sparkStatus.at = i + 1; sparkStatus.text = `已触发 (${i + 1}抽)`; break;
-            }
-        }
+  const records = activeRecords.value;
+  if (!records.length) return [];
+  
+  const poolGroups = new Map();
+  
+  // Group by gacha_id (from records directly)
+  records.forEach(r => {
+    const pid = r.gacha_id || r.poolId || 'unknown';
+    if (!poolGroups.has(pid)) {
+      poolGroups.set(pid, []);
     }
-
-    matchingRecordsDesc.forEach((r) => {
+    poolGroups.get(pid).push(r);
+  });
+  
+  const banners = [];
+  poolGroups.forEach((groupRecords, pid) => {
+    const ascGroup = [...groupRecords].sort((a, b) => Number(a.id) - Number(b.id));
+    const descGroup = [...groupRecords].sort((a, b) => Number(b.id) - Number(a.id));
+    
+    // In our adapted records, poolName and poolId are included
+    const firstRecord = groupRecords[0];
+    const poolName = firstRecord.poolName || pid;
+    
+    // Spark status: simple pull count for special and weapon pools
+    let sparkStatus = null;
+    if (activeType.value === 'special' || activeType.value === 'weapon') {
+      const paidPulls = ascGroup.filter(r => !r.isFree).length;
+      const target = activeType.value === 'weapon' ? 80 : 120;
+      sparkStatus = {
+        text: `${paidPulls} / ${target}`
+      };
+    }
+    
+    const ssrDetails = [];
+    descGroup.forEach(r => {
       if (r.rank_type === "6") {
         const pity = r.isFree ? 0 : getPityForRecord(r);
-        const displayPity = r.isFree ? "FREE" : pity;
         ssrDetails.push({
-          ...r, pity, displayPity, maxValue: activeTypeConfig.value.maxPity,
-          isUpMajor: pool.up6?.includes(r.name), isUpMinor: pool._up6?.includes(r.name)
+          ...r,
+          pity,
+          displayPity: r.isFree ? "FREE" : pity,
+          maxValue: activeTypeConfig.value.maxPity
         });
       }
     });
-
+    
     banners.push({
-      id: pool.poolId || pool.id, name: pool.poolName || pool.name,
-      startTime: pool.startTime, endTime: pool.endTime, totalPulls: matchingRecordsDesc.length,
-      sparkStatus, ssrRecords: ssrDetails, isCurrent: Date.now() >= start && Date.now() <= end,
-      upItems: (pool.up6 || []).map(n => ({name: n, isMajor: true})).concat((pool._up6 || []).map(n => ({name: n, isMajor: false})))
+      id: pid,
+      name: poolName,
+      totalPulls: groupRecords.length,
+      sparkStatus,
+      ssrRecords: ssrDetails,
+      startTime: ascGroup[0].time,
+      endTime: descGroup[0].time
     });
   });
-  return banners;
+  
+  // Sort banners by latest record's ID (descending) to show newest pool first
+  return banners.sort((a, b) => {
+    const aLatestId = Math.max(...poolGroups.get(a.id).map(r => Number(r.id)));
+    const bLatestId = Math.max(...poolGroups.get(b.id).map(r => Number(r.id)));
+    return bLatestId - aLatestId;
+  });
 });
 
 const getPityForRecord = (targetRecord) => {

@@ -169,6 +169,8 @@ const processGryphlineList = ({ characterList = [], weaponList = [] }) => {
             rank_type: item.rarity ? item.rarity.toString() : "3",
             time: timeStr,
             gacha_id: item.poolId,
+            poolId: item.poolId,
+            poolName: item.poolName,
             count: "1"
         }
 
@@ -216,6 +218,8 @@ const processGryphlineList = ({ characterList = [], weaponList = [] }) => {
             rank_type: item.rarity ? item.rarity.toString() : "3",
             time: timeStr,
             gacha_id: item.poolId,
+            poolId: item.poolId,
+            poolName: item.poolName,
             count: "1",
             gacha_type: 'weapon'
         }
