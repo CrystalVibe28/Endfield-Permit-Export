@@ -127,9 +127,22 @@
           >
             <!-- Banner Header -->
             <div
-              class="bg-gray-50/50 px-6 py-4 flex justify-between items-center border-b border-gray-100"
+              class="relative bg-gray-50/50 px-6 py-4 flex justify-between items-center border-b border-gray-100 min-h-[80px]"
             >
-              <div>
+              <!-- Background Image -->
+              <div 
+                v-if="getBannerImage(banner.id)"
+                class="absolute inset-0 z-0 pointer-events-none"
+              >
+                <img 
+                    :src="getBannerImage(banner.id)" 
+                    class="w-full h-full object-cover object-right opacity-40"
+                    style="-webkit-mask-image: linear-gradient(to right, transparent, black 40%); mask-image: linear-gradient(to right, transparent, black 40%);"
+                />
+              </div>
+
+              <div class="relative z-10 flex-1 flex justify-between items-center">
+                <div class="flex-1 min-w-0">
                 <h3
                   class="text-lg font-bold text-gray-800 flex items-center gap-2"
                 >
@@ -154,10 +167,11 @@
                  </div>
 
                  <div
-                    class="bg-white text-gray-600 text-sm px-4 py-1.5 rounded-full font-bold font-mono border border-gray-200 shadow-sm"
+                    class="bg-white/80 backdrop-blur-sm text-gray-600 text-sm px-4 py-1.5 rounded-full font-bold font-mono border border-gray-200 shadow-sm"
                  >
                     {{ banner.totalPulls }} {{ i18n?.ui?.data?.times }}
                  </div>
+              </div>
               </div>
             </div>
 
@@ -209,11 +223,13 @@
                   <div class="relative shrink-0">
                     <div
                       class="w-12 h-12 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-lg font-bold shadow-sm text-gray-700 overflow-hidden"
-                      :class="{ 'opacity-50 grayscale': !record.isUpMajor && !record.isUpMinor }"
+                      :class="{ '': !record.isUpMajor && !record.isUpMinor }"
                     >
+                       <!-- opacity-50 grayscale -->
+
                       <img
-                        v-if="getCharacterIcon(record.name)"
-                        :src="getCharacterIcon(record.name)"
+                        v-if="getCharacterIcon(record)"
+                        :src="getCharacterIcon(record)"
                         class="w-full h-full object-cover"
                         :alt="record.name"
                       />
@@ -273,8 +289,6 @@
 
 <script setup>
 import { inject, ref, computed, watch } from "vue";
-import poolsData from "../data/pools.json";
-import charactersData from "../data/characters.json";
 import { FolderDelete } from "@element-plus/icons-vue";
 
 const i18n = inject("i18n");
@@ -470,11 +484,24 @@ const getPityColorText = (pity) => {
   if (pity <= 60) return "text-amber-600";
   return "text-red-600";
 };
-const getCharacterIcon = (name) => {
-  const iconFile = charactersData[name]?.icon;
-  if (!iconFile) return null;
-  if (iconFile.startsWith("http")) return iconFile;
-  return new URL(`../assets/characters/${iconFile}`, import.meta.url).href;
+const getCharacterIcon = (record) => {
+  // Try to find by item_id (Character ID)
+  if (record.item_id) {
+    try {
+        return new URL(`../assets/characters/${record.item_id}.png`, import.meta.url).href;
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+};
+
+const getBannerImage = (poolId) => {
+  return new URL(`../assets/banners/${poolId}.png`, import.meta.url).href;
+};
+
+const getCharacterFullImage = (charId) => {
+  return new URL(`../assets/characters/${charId}.png`, import.meta.url).href;
 };
 </script>
 
