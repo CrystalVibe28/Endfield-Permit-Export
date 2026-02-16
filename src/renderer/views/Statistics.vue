@@ -484,24 +484,29 @@ const getPityColorText = (pity) => {
   if (pity <= 60) return "text-amber-600";
   return "text-red-600";
 };
+
+// Use dynamic glob to detect available icons at build/runtime (Vite 2.x compatible)
+const characterIconFiles = import.meta.globEager("../assets/characters/*.png");
+const bannerFiles = import.meta.globEager("../assets/banners/*.png");
+
 const getCharacterIcon = (record) => {
-  // Try to find by item_id (Character ID)
-  if (record.item_id) {
-    try {
-        return new URL(`../assets/characters/${record.item_id}.png`, import.meta.url).href;
-    } catch (e) {
-      return null;
-    }
-  }
-  return null;
+  if (!record.item_id) return null;
+  const fileName = `${record.item_id}.png`;
+  // Find key that ends with the filename
+  const matchKey = Object.keys(characterIconFiles).find(path => path.endsWith(fileName));
+  return matchKey ? characterIconFiles[matchKey].default : null;
 };
 
 const getBannerImage = (poolId) => {
-  return new URL(`../assets/banners/${poolId}.png`, import.meta.url).href;
+  const fileName = `${poolId}.png`;
+  const matchKey = Object.keys(bannerFiles).find(path => path.endsWith(fileName));
+  return matchKey ? bannerFiles[matchKey].default : null;
 };
 
 const getCharacterFullImage = (charId) => {
-  return new URL(`../assets/characters/${charId}.png`, import.meta.url).href;
+  const fileName = `${charId}.png`;
+  const matchKey = Object.keys(characterIconFiles).find(path => path.endsWith(fileName));
+  return matchKey ? characterIconFiles[matchKey].default : null;
 };
 </script>
 
