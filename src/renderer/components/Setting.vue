@@ -1,12 +1,13 @@
 <template>
-  <div class="bg-white py-4 px-6 w-screen h-screen fixed inset-0 overflow-y-auto">
+  <teleport to="body">
+    <div class="bg-white py-4 px-6 w-screen h-screen fixed inset-0 overflow-y-auto z-[9999]">
     <div class="flex content-center items-center mb-4 justify-between">
       <h3 class="text-lg">{{text.title}}</h3>
       <el-button icon="close" @click="closeSetting" plain circle type="default" class="w-8 h-8 shadow-md focus:shadow-none focus:outline-none fixed top-4 right-6"></el-button>
     </div>
     <el-form :model="settingForm" label-width="120px">
       <el-form-item :label="text.language">
-        <el-select @change="saveLang" v-model="settingForm.lang" class="!w-44">
+        <el-select @change="saveLang" v-model="settingForm.lang" class="!w-44" :teleported="false">
           <el-option v-for="item of data.langMap" :key="item[0]" :label="item[1]" :value="item[0]"></el-option>
         </el-select>
         <p class="text-gray-400 text-xs m-1.5">{{text.languageHint}}</p>
@@ -68,7 +69,7 @@
     <p class="text-gray-600 text-xs mt-1">{{about.license}}</p>
     <p class="text-gray-600 text-xs mt-1">Github: <a @click="openGithub" class="cursor-pointer text-blue-400">https://github.com/AiverAiva/Endfield-Permit-Export</a></p>
     <p class="text-gray-600 text-xs mt-1 pb-6">UIGF: <a @click="openUIGF" class="cursor-pointer text-blue-400">https://uigf.org/</a></p>
-    <el-dialog v-model="state.showDataDialog" :title="common.dataManage" width="90%">
+    <el-dialog v-model="state.showDataDialog" :title="common.dataManage" width="90%" :append-to-body="false">
       <div class="">
         <el-table :data="gachaDataInfo" border stripe>
           <el-table-column property="uid" label="UID" width="128" />
@@ -94,8 +95,8 @@
         </el-table>
       </div>
     </el-dialog>
-  </div>
-
+    </div>
+  </teleport>
 </template>
 
 <script setup>
@@ -143,6 +144,8 @@ const saveSetting = async () => {
 
 const saveLang = async () => {
   await saveSetting()
+  // Notify main process to broadcast language change
+  await ipcRenderer.invoke('NOTIFY_LANG_CHANGE')
   emit('changeLang')
 }
 

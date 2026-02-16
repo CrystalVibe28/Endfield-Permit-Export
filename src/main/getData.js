@@ -638,6 +638,10 @@ ipcMain.handle('READ_DATA', async () => {
 ipcMain.handle('CHANGE_UID', (event, uid) => { changeCurrent(uid) })
 ipcMain.handle('GET_CONFIG', () => config.value())
 ipcMain.handle('SAVE_CONFIG', (event, [key, value]) => { config[key] = value; config.save() })
+ipcMain.handle('NOTIFY_LANG_CHANGE', () => {
+    // Broadcast language change to all renderer processes
+    sendMsg('', 'LANG_CHANGED')
+})
 ipcMain.handle('OPEN_CACHE_FOLDER', () => { shell.openPath(userDataPath) })
 
 // Delete or restore data
