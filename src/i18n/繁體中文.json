@@ -106,8 +106,9 @@
   "ui.extra.findCacheFolder": "如果按下「開啟快取資料夾」按鈕沒有回應，可以手動找到遊戲的網頁快取資料夾，目錄為「您的遊戲安裝路徑/Star Rail/Games/StarRail_Data/webCaches/Cache/」",
   "ui.extra.urlCopied": "URL 已複製",
   "ui.uigf.title": "請選擇要導出的UID",
-  "gacha.type.1": "常駐尋訪",
-  "gacha.type.11": "活動尋訪",
-  "gacha.type.2": "新手尋訪",
-  "gacha.type.300": "加急招募"
+  "gacha.type.standard": "常駐尋訪",
+  "gacha.type.special": "活動尋訪",
+  "gacha.type.beginner": "新手尋訪",
+  "gacha.type.urgent": "加急招募",
+  "gacha.type.weapon": "武庫申領"
 }

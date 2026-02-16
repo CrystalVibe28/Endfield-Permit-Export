@@ -57,7 +57,7 @@ const parseData = (detail, type) => {
     color.push(colors[index]);
   });
   if (
-    type === "100" ||
+    type === "urgent" ||
     result.findIndex((item) => item.name.includes("5")) === -1
   ) {
     selected[text.weapon3] = true;

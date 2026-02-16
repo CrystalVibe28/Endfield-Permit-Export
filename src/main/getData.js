@@ -106,9 +106,9 @@ const POOL_TYPES = [
 ]
 
 const poolIdMap = {
-    'E_CharacterGachaPoolType_Standard': '1',
-    'E_CharacterGachaPoolType_Special': '11',
-    'E_CharacterGachaPoolType_Beginner': '2'
+    'E_CharacterGachaPoolType_Standard': 'standard',
+    'E_CharacterGachaPoolType_Special': 'special',
+    'E_CharacterGachaPoolType_Beginner': 'beginner'
 }
 
 const adaptUserLog = (userLog, poolType) => {
@@ -122,7 +122,7 @@ const adaptUserLog = (userLog, poolType) => {
     const seconds = String(date.getSeconds()).padStart(2, '0');
     const timeStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
-    const gacha_type = userLog.isFree ? '300' : (poolIdMap[poolType] || '1')
+    const gacha_type = userLog.isFree ? 'urgent' : (poolIdMap[poolType] || 'standard')
     return {
         id: userLog.seqId,
         item_id: userLog.charId,
@@ -135,6 +135,157 @@ const adaptUserLog = (userLog, poolType) => {
         count: "1"
     }
 }
+// ... (skip lines)
+
+const processGryphlineList = ({ characterList = [], weaponList = [] }) => {
+    const result = new Map()
+    // Initialize lists
+    const pools = {
+        'standard': [],   
+        'special': [],  
+        'weapon': [],  
+        'beginner': [],  
+        'urgent': []  
+    }
+
+    // Process Characters
+    const sortedChars = [...characterList].sort((a, b) => Number(a.seqId) - Number(b.seqId))
+    for (const item of sortedChars) {
+        // Adapt fields
+        const date = new Date(parseInt(item.gachaTs))
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        const seconds = String(date.getSeconds()).padStart(2, '0')
+        const timeStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+
+        const adapted = {
+            id: item.seqId,
+            item_id: item.charId,
+            item_type: "Character",
+            name: item.charName,
+            rank_type: item.rarity ? item.rarity.toString() : "3",
+            time: timeStr,
+            gacha_id: item.poolId,
+            count: "1"
+        }
+
+        // Categorize Characters
+        if (item.isFree) {
+            adapted.gacha_type = 'urgent'
+            pools['urgent'].push(adapted)
+        } else {
+            const pid = item.poolId || ''
+            if (pid === 'standard') {
+                adapted.gacha_type = 'standard'
+                pools['standard'].push(adapted)
+            } else if (pid === 'beginner') {
+                adapted.gacha_type = 'beginner'
+                pools['beginner'].push(adapted)
+            } else if (pid.startsWith('special_')) {
+                adapted.gacha_type = 'special'
+                pools['special'].push(adapted)
+            } else {
+                // Fallback for unknown character pools
+                adapted.gacha_type = 'standard'
+                pools['standard'].push(adapted)
+            }
+        }
+    }
+
+    // Process Weapons
+    const sortedWeapons = [...weaponList].sort((a, b) => Number(a.seqId) - Number(b.seqId))
+    for (const item of sortedWeapons) {
+        // Adapt fields
+        const date = new Date(parseInt(item.gachaTs))
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        const seconds = String(date.getSeconds()).padStart(2, '0')
+        const timeStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+
+        const adapted = {
+            id: item.seqId,
+            item_id: item.weaponId,
+            item_type: "Weapon",
+            name: item.weaponName,
+            rank_type: item.rarity ? item.rarity.toString() : "3",
+            time: timeStr,
+            gacha_id: item.poolId,
+            count: "1",
+            gacha_type: 'weapon'
+        }
+
+        pools['weapon'].push(adapted)
+    }
+
+    for (const [key, list] of Object.entries(pools)) {
+        if (list.length > 0) result.set(key, list)
+    }
+    return result
+}
+
+const saveGryphlineData = async (uid, { characterList = [], weaponList = [] }) => {
+    const fileName = `gryphline-list-${uid}.json`
+    let existingData = { 
+        info: { 
+            uid, 
+            export_timestamp: Math.floor(Date.now()/1000), 
+            app_version: app.getVersion() 
+        }, 
+        characterList: [],
+        weaponList: []
+    }
+    
+    try {
+        const loaded = await readJSON(userDataPath, fileName)
+        if (loaded) {
+            if (loaded.list) {
+                // Migration: Split old mixed list
+                const oldList = loaded.list
+                existingData.characterList = oldList.filter(item => item.charId)
+                existingData.weaponList = oldList.filter(item => item.weaponId)
+                // Use loaded info if available
+                if (loaded.info) existingData.info = loaded.info
+            } else {
+                if (loaded.characterList) existingData.characterList = loaded.characterList
+                if (loaded.weaponList) existingData.weaponList = loaded.weaponList
+                if (loaded.info) existingData.info = loaded.info
+            }
+        }
+    } catch {}
+
+    // Merge Character List
+    if (characterList && characterList.length > 0) {
+        const existingIds = new Set(existingData.characterList.map(i => i.seqId))
+        const toAdd = characterList.filter(i => !existingIds.has(i.seqId))
+        if (toAdd.length > 0) {
+            existingData.characterList.push(...toAdd)
+        }
+    }
+    // Sort Characters (Newest first)
+    existingData.characterList.sort((a, b) => Number(b.gachaTs) - Number(a.gachaTs))
+
+    // Merge Weapon List
+    if (weaponList && weaponList.length > 0) {
+        const existingIds = new Set(existingData.weaponList.map(i => i.seqId))
+        const toAdd = weaponList.filter(i => !existingIds.has(i.seqId))
+        if (toAdd.length > 0) {
+            existingData.weaponList.push(...toAdd)
+        }
+    }
+    // Sort Weapons (Newest first)
+    existingData.weaponList.sort((a, b) => Number(b.gachaTs) - Number(a.gachaTs))
+    
+    existingData.info.export_timestamp = Math.floor(Date.now()/1000)
+    existingData.info.app_version = app.getVersion()
+    
+    await saveJSON(fileName, existingData)
+}
 
 const fetchCharRecord = async ({ token, lang, serverId, poolType, seqId }) => {
     const url = new URL(`${apiDomain}/api/record/char`)
@@ -143,6 +294,9 @@ const fetchCharRecord = async ({ token, lang, serverId, poolType, seqId }) => {
     url.searchParams.append('server_id', serverId)
     url.searchParams.append('pool_type', poolType)
     if (seqId) url.searchParams.append('seq_id', seqId)
+
+    // DEBUG LOG
+    console.log(`[fetchCharRecord] Fetching: ${url.toString()}`)
 
     const response = await fetch(url.toString())
     if (!response.ok) throw new Error(`API error: ${response.status}`)
@@ -172,53 +326,28 @@ const fetchWeaponRecord = async ({ token, lang, serverId, poolId, seqId }) => {
     return await response.json()
 }
 
-const adaptWeaponLog = (userLog, poolId) => {
-    // timestamp "1769062855302" -> "YYYY-MM-DD HH:mm:ss"
-    const date = new Date(parseInt(userLog.gachaTs));
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    const timeStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-
-    return {
-        id: userLog.seqId,
-        item_id: userLog.weaponId,
-        item_type: "Weapon",
-        name: userLog.weaponName,
-        rank_type: userLog.rarity.toString(),
-        time: timeStr,
-        gacha_id: userLog.poolId,
-        gacha_type: poolId,
-        count: "1"
-    }
-}
-
 const getAllRecord = async ({ token, lang, serverId }) => {
-    const allRecords = []
     const typeMap = new Map()
-    // Populate typeMap for UI
-    typeMap.set('1', i18n.parse(i18n.gacha.type['1']))
-    typeMap.set('11', i18n.parse(i18n.gacha.type['11']))
-    typeMap.set('2', i18n.parse(i18n.gacha.type['2']))
-    typeMap.set('300', i18n.parse(i18n.gacha.type['300']))
-    const result = new Map()
+    // Populate typeMap for logging purposes
+    typeMap.set('standard', i18n.parse(i18n.gacha.type.standard))
+    typeMap.set('special', i18n.parse(i18n.gacha.type.special))
+    typeMap.set('beginner', i18n.parse(i18n.gacha.type.beginner))
+    typeMap.set('urgent', i18n.parse(i18n.gacha.type.urgent))
+    
+    const characterList = []
+    const weaponList = []
 
     sendMsg(i18n.parse(i18n.log.fetch.gachaType))
-    await sleep(1) // Simulate wait or just nice UX
+    await sleep(1) 
     sendMsg(i18n.parse(i18n.log.fetch.gachaTypeOk))
 
+    // 1. Character Pools
     for (const poolType of POOL_TYPES) {
         let hasMore = true
         let lastSeqId = undefined
-        const currentPoolRecords = []
         const mappedKey = poolIdMap[poolType]
         const name = typeMap.get(mappedKey)
         let page = 1
-
-        // sendMsg(`Fetching ${poolType}...`) // Removed in favor of i18n logs inside loop
 
         while (hasMore) {
             if (page % 10 === 0 && page > 0) {
@@ -237,13 +366,9 @@ const getAllRecord = async ({ token, lang, serverId }) => {
                 try {
                     res = await fetchCharRecord({ token, lang, serverId, poolType, seqId: lastSeqId })
 
-                    // Simple check for auth/error based on response structure
-                    // Assuming standard structure: { code: 0, data: { ... } }
-                    // Use loose check for code as I don't see it defined.
-                    // If res.data is missing, it's likely an error.
                     if (!res || !res.data) {
                         const message = res ? res.message : 'Unknown error'
-                        if (message === 'auth key timeout' || (res && res.code === -101)) { // Guessing or covering general case if possible
+                        if (message === 'auth key timeout' || (res && res.code === -101)) {
                             throw new Error('AUTH_TIMEOUT')
                         }
                         throw new Error(`API Error: ${message}`)
@@ -260,7 +385,7 @@ const getAllRecord = async ({ token, lang, serverId }) => {
                     retryCount++
                     if (retryCount >= 5) {
                         sendMsg(i18n.parse(i18n.log.fetch.retryFailed, { name, page }))
-                        hasMore = false // Stop fetching this pool
+                        hasMore = false 
                         break
                     }
 
@@ -272,69 +397,38 @@ const getAllRecord = async ({ token, lang, serverId }) => {
             if (!success) break
 
             const list = res.data.list
-            // If success but list is empty, handle normally?
-
-            // Add slight delay to be safe (original logic had 500ms)
+            
             if (!(page % 10 === 0)) {
                 await sleep(0.5)
             }
 
             if (list && list.length > 0) {
-                const adaptedList = list.map(item => adaptUserLog(item, poolType))
-                currentPoolRecords.push(...adaptedList)
+                characterList.push(...list)
                 lastSeqId = list[list.length - 1].seqId
             }
             hasMore = res.data.hasMore
             page++
         }
-
-        if (currentPoolRecords.length > 0) {
-            // Sort by id ascending (oldest first) for UI pity calculation
-            currentPoolRecords.sort((a, b) => Number(a.id) - Number(b.id))
-            
-            // Separate Urgent Recruitment
-            const normalRecords = []
-            const urgentRecords = []
-            
-            for (const record of currentPoolRecords) {
-                if (record.gacha_type === '300') {
-                    urgentRecords.push(record)
-                } else {
-                    normalRecords.push(record)
-                }
-            }
-
-            if (normalRecords.length > 0) {
-                const existing = result.get(mappedKey) || []
-                result.set(mappedKey, existing.concat(normalRecords))
-            }
-            if (urgentRecords.length > 0) {
-                 const existing = result.get('300') || []
-                 result.set('300', existing.concat(urgentRecords))
-            }
-        }
     }
 
-    // Weapon Fetching
-    let weaponPools = []
+    // 2. Weapon Pools
+    let weaponPoolsData = []
     try {
         const wpRes = await fetchWeaponPools({ lang, token, serverId })
         if (wpRes && wpRes.data) {
-            weaponPools = wpRes.data
+            weaponPoolsData = wpRes.data
         }
     } catch (e) {
         console.error("Failed to fetch weapon pools", e)
     }
 
-    for (const pool of weaponPools) {
+    for (const pool of weaponPoolsData) {
         const poolType = pool.poolId
         const poolName = pool.poolName
-        typeMap.set(poolType, poolName)
-
+        // Use poolName for logging
+        
         let hasMore = true
         let lastSeqId = undefined
-        const currentPoolRecords = []
-        const mappedKey = poolType
         const name = poolName
         let page = 1
 
@@ -392,29 +486,17 @@ const getAllRecord = async ({ token, lang, serverId }) => {
             }
 
             if (list && list.length > 0) {
-                const adaptedList = list.map(item => adaptWeaponLog(item, poolType))
-                currentPoolRecords.push(...adaptedList)
+                weaponList.push(...list)
                 lastSeqId = list[list.length - 1].seqId
             }
             hasMore = res.data.hasMore
             page++
         }
-
-        if (currentPoolRecords.length > 0) {
-            currentPoolRecords.sort((a, b) => Number(a.id) - Number(b.id))
-            result.set(mappedKey, currentPoolRecords)
-        }
     }
 
-    return {
-        result,
-        typeMap,
-        time: Date.now(),
-        uid: "EndfieldUser", // Since we don't have UID from this API, we might need to fake it or extract it elsewhere
-        lang,
-        region: serverId
-    }
+    return { characterList, weaponList }
 }
+
 
 const fetchData = async () => {
     await readData() // Load existing local data
@@ -436,30 +518,91 @@ const fetchData = async () => {
 
         sendMsg(`Processing account: ${uid}`)
 
-        const data = await getAllRecord({ token, lang, serverId })
-        data.uid = uid
+        const { characterList, weaponList } = await getAllRecord({ token, lang, serverId })
+        const data = { uid, rawList: [] } // Legacy structure not used but defined
+        
+        // Save raw Gryphline data
+        await saveGryphlineData(uid, { characterList, weaponList })
+        
+        // Read back updated data
+        const fileName = `gryphline-list-${uid}.json`
+        try {
+            const loaded = await readJSON(userDataPath, fileName)
+            if (loaded) { // loaded can be object with characterList/weaponList
+                let charList = loaded.characterList || []
+                let wepList = loaded.weaponList || []
+                
+                // Fallback for immediate processing if load fails to find new keys immediately (unlikely)
+                if (loaded.list) {
+                    charList = loaded.list.filter(i => i.charId)
+                    wepList = loaded.list.filter(i => i.weaponId)
+                }
 
-        const localData = dataMap.get(uid)
-        const mergedResult = mergeData(localData, data)
-        data.result = mergedResult
+                const processedResult = processGryphlineList({ characterList: charList, weaponList: wepList })
+                
+                const uiData = {
+                    uid: uid,
+                    time: loaded.info.export_timestamp * 1000,
+                    result: processedResult,
+                    typeMap: new Map(),
+                    // rawList: ... // not strictly needed for UI if result is populated
+                }
+                
+                uiData.typeMap.set('standard', i18n.parse(i18n.gacha.type.standard))
+                uiData.typeMap.set('special', i18n.parse(i18n.gacha.type.special))
+                uiData.typeMap.set('weapon', i18n.parse(i18n.gacha.type.weapon))
+                uiData.typeMap.set('beginner', i18n.parse(i18n.gacha.type.beginner))
+                uiData.typeMap.set('urgent', i18n.parse(i18n.gacha.type.urgent))
 
-        dataMap.set(uid, data)
-        await changeCurrent(uid)
-        await saveData(data)
+                dataMap.set(uid, uiData)
+                await changeCurrent(uid)
+            }
+        } catch (e) {
+            console.error("Failed to process saved gryphline data", e)
+        }
     }
 }
 
 const readData = async () => {
     await fs.ensureDir(userDataPath)
+    dataMap.clear()
     const files = await fs.readdir(userDataPath)
     for (let name of files) {
-        if (/^gacha-list-.+\.json$/.test(name)) {
+        if (/^gryphline-list-.+\.json$/.test(name)) {
             try {
                 const data = await readJSON(userDataPath, name)
-                if (data.uid) dataMap.set(data.uid, data)
-                data.result = new Map(data.result)
-                if (data.typeMap) data.typeMap = new Map(data.typeMap)
-            } catch (e) { }
+                if (data.info && data.info.uid) {
+                    const uid = data.info.uid
+                    let charList = data.characterList || []
+                    let wepList = data.weaponList || []
+                    
+                    // Migration on read if needed (though save handles it on next fetch)
+                    if (data.list && (!charList.length && !wepList.length)) {
+                        charList = data.list.filter(i => i.charId)
+                        wepList = data.list.filter(i => i.weaponId)
+                    }
+
+                    const processedResult = processGryphlineList({ characterList: charList, weaponList: wepList })
+                    
+                    const uiData = {
+                        uid: uid,
+                        time: data.info.export_timestamp * 1000,
+                        result: processedResult,
+                        typeMap: new Map(),
+                        // rawList: data.list // Legacy
+                    }
+                    
+                    uiData.typeMap.set('standard', i18n.parse(i18n.gacha.type.standard))
+                    uiData.typeMap.set('special', i18n.parse(i18n.gacha.type.special))
+                    uiData.typeMap.set('weapon', i18n.parse(i18n.gacha.type.weapon))
+                    uiData.typeMap.set('beginner', i18n.parse(i18n.gacha.type.beginner))
+                    uiData.typeMap.set('urgent', i18n.parse(i18n.gacha.type.urgent))
+
+                    dataMap.set(uid, uiData)
+                }
+            } catch (e) { 
+                console.error("Error reading gryphline list", e)
+            }
         }
     }
 }

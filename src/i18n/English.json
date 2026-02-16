@@ -106,8 +106,9 @@
   "ui.extra.findCacheFolder": "If the \"Open cache folder\" button does not respond, you can manually find the game's web cache folder. The directory is \"Your game installation path/Endfield/Games/Endfield_Data/webCaches/Cache/\"",
   "ui.extra.urlCopied": "URL Copied",
   "ui.uigf.title": "Please select the UID(s) you want to export",
-  "gacha.type.1": "Basic Headhunting",
-  "gacha.type.11": "Chartered Headhunting",
-  "gacha.type.2": "New Horizon Headhunting",
-  "gacha.type.300": "Urgent Recruitment"
+  "gacha.type.standard": "Basic Headhunting",
+  "gacha.type.special": "Chartered Headhunting",
+  "gacha.type.beginner": "New Horizon Headhunting",
+  "gacha.type.urgent": "Urgent Recruitment",
+  "gacha.type.weapon": "Arsenal Issue"
 }
