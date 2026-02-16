@@ -16,8 +16,19 @@
           <el-radio-button :label="0">{{text.auto}}</el-radio-button>
           <el-radio-button :label="1">{{text.cnServer}}</el-radio-button>
           <el-radio-button :label="2">{{text.seaServer}}</el-radio-button>
+          <el-radio-button :label="3">{{text.manual}}</el-radio-button>
         </el-radio-group>
         <p class="text-gray-400 text-xs m-1.5">{{text.logTypeHint}}</p>
+        <div v-if="settingForm.logType === 3" class="mt-2 w-full">
+          <el-input 
+            v-model="settingForm.manualUrl" 
+            @change="saveSetting"
+            :placeholder="text.manualUrlPlaceholder"
+            clearable
+          >
+          </el-input>
+          <p class="text-red-500 text-xs m-1.5 font-bold">{{text.manualWarning}}</p>
+        </div>
       </el-form-item>
       <el-form-item :label="common.data">
         <el-button type="primary" plain @click="state.showDataDialog = true">{{common.dataManage}}</el-button>
@@ -109,7 +120,9 @@ const settingForm = reactive({
   proxyMode: true,
   autoUpdate: true,
   fetchFullHistory: false,
-  hideNovice: true
+  fetchFullHistory: false,
+  hideNovice: true,
+  manualUrl: ''
 })
 
 const state = reactive({
@@ -122,7 +135,7 @@ const text = computed(() => props.i18n.ui.setting)
 const about = computed(() => props.i18n.ui.about)
 
 const saveSetting = async () => {
-  const keys = ['lang', 'logType', 'proxyMode', 'autoUpdate', 'fetchFullHistory', 'hideNovice']
+  const keys = ['lang', 'logType', 'proxyMode', 'autoUpdate', 'fetchFullHistory', 'hideNovice', 'manualUrl']
   for (let key of keys) {
     await ipcRenderer.invoke('SAVE_CONFIG', [key, settingForm[key]])
   }

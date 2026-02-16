@@ -26,6 +26,35 @@ const extractEfWebview = async () => {
         path.join(homeDir, "AppData", "LocalLow", "Hypergryph", "Endfield", "sdklogs", "HGWebview.log")
     ]
 
+    if (config.logType === 3) {
+        if (!config.manualUrl) {
+            sendMsg('Manual URL not provided.')
+            return false
+        }
+        try {
+            const parsed = new URL(config.manualUrl)
+            const token = parsed.searchParams.get("u8_token") || parsed.searchParams.get("token")
+            const lang = parsed.searchParams.get("lang")
+            const serverRaw = parsed.searchParams.get("server") || parsed.searchParams.get("server_id")
+
+            if (token && lang && serverRaw) {
+                return [{
+                    token,
+                    lang,
+                    serverId: serverRaw,
+                    host: parsed.host,
+                    apiDomain: `${parsed.protocol}//${parsed.host}`
+                }]
+            } else {
+                 sendMsg('Invalid Manual URL format.')
+                 return false
+            }
+        } catch (e) {
+            sendMsg('Error parsing Manual URL.')
+            return false
+        }
+    }
+
     if (config.logType === 1) {
         logPaths = [path.join(homeDir, "AppData", "LocalLow", "Hypergryph", "Endfield", "sdklogs", "HGWebview.log")]
     } else if (config.logType === 2) {
