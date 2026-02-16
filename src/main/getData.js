@@ -261,25 +261,25 @@ const saveGryphlineData = async (uid, { characterList = [], weaponList = [] }) =
 
     // Merge Character List
     if (characterList && characterList.length > 0) {
-        const existingIds = new Set(existingData.characterList.map(i => i.seqId))
-        const toAdd = characterList.filter(i => !existingIds.has(i.seqId))
+        const existingIds = new Set(existingData.characterList.map(i => String(i.seqId)))
+        const toAdd = characterList.filter(i => !existingIds.has(String(i.seqId)))
         if (toAdd.length > 0) {
             existingData.characterList.push(...toAdd)
         }
     }
     // Sort Characters (Newest first)
-    existingData.characterList.sort((a, b) => Number(b.gachaTs) - Number(a.gachaTs))
+    existingData.characterList.sort((a, b) => Number(b.seqId) - Number(a.seqId))
 
     // Merge Weapon List
     if (weaponList && weaponList.length > 0) {
-        const existingIds = new Set(existingData.weaponList.map(i => i.seqId))
-        const toAdd = weaponList.filter(i => !existingIds.has(i.seqId))
+        const existingIds = new Set(existingData.weaponList.map(i => String(i.seqId)))
+        const toAdd = weaponList.filter(i => !existingIds.has(String(i.seqId)))
         if (toAdd.length > 0) {
             existingData.weaponList.push(...toAdd)
         }
     }
     // Sort Weapons (Newest first)
-    existingData.weaponList.sort((a, b) => Number(b.gachaTs) - Number(a.gachaTs))
+    existingData.weaponList.sort((a, b) => Number(b.seqId) - Number(a.seqId))
     
     existingData.info.export_timestamp = Math.floor(Date.now()/1000)
     existingData.info.app_version = app.getVersion()
