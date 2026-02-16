@@ -65,8 +65,8 @@
       </el-form-item>
     </el-form>
     <h3 class="text-lg my-4">{{about.title}}</h3>
-    <p class="text-gray-600 text-xs mt-1">{{text.idVersion}} {{idJson.version}}</p>
     <p class="text-gray-600 text-xs mt-1">{{about.license}}</p>
+    <p class="text-gray-600 text-xs mt-1">{{about.forum}}: <a @click="openForum" class="cursor-pointer text-blue-400">https://forum.gamer.com.tw/C.php?bsn=74604&snA=771</a></p>
     <p class="text-gray-600 text-xs mt-1">Github: <a @click="openGithub" class="cursor-pointer text-blue-400">https://github.com/AiverAiva/Endfield-Permit-Export</a></p>
     <p class="text-gray-600 text-xs mt-1 pb-6">UIGF: <a @click="openUIGF" class="cursor-pointer text-blue-400">https://uigf.org/</a></p>
     <el-dialog v-model="state.showDataDialog" :title="common.dataManage" width="90%" :append-to-body="false">
@@ -101,7 +101,6 @@
 
 <script setup>
 const { ipcRenderer, shell } = require('electron')
-import idJson from '../../idJson.json'
 import { reactive, onMounted, computed } from 'vue'
 
 const emit = defineEmits(['close', 'changeLang', 'refreshData'])
@@ -157,6 +156,7 @@ const disableProxy = async () => {
 
 const openGithub = () => shell.openExternal('https://github.com/AiverAiva/Endfield-Permit-Export')
 const openUIGF = () => shell.openExternal('https://uigf.org/')
+const openForum = () => shell.openExternal('https://forum.gamer.com.tw/C.php?bsn=74604&snA=771')
 const openLink = (link) => shell.openExternal(link)
 
 const deleteData = async (uid, action) => {
