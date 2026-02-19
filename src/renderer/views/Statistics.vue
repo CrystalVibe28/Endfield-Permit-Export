@@ -215,6 +215,28 @@
 
               <!-- Detailed Timeline -->
               <div class="space-y-4">
+                <!-- Current Pity (Pulls since last SSR) -->
+                <div v-if="banner.currentPity > 0" class="flex items-center gap-5 group/item opacity-80 italic">
+                  <div class="relative shrink-0 flex items-center justify-center w-12 h-12">
+                    <el-icon class="text-2xl text-gray-300"><Clock /></el-icon>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex justify-between text-[10px] mb-1 px-0.5 text-gray-400 font-bold uppercase tracking-wider">
+                      <span>{{ i18n?.ui?.data?.sum || 'Pity' }}</span>
+                      <span>{{ banner.currentPity }}{{ i18n?.ui?.data?.times }} / {{ activeTypeConfig.maxPity }}</span>
+                    </div>
+                    <div class="relative h-1.5 bg-gray-100 rounded-full overflow-hidden w-full border border-gray-50 flex items-center">
+                        <div 
+                          class="h-full bg-gray-300" 
+                          :style="{ width: getPityPercentage(banner.currentPity, activeTypeConfig.maxPity) + '%' }"
+                        ></div>
+                    </div>
+                    <div class="mt-1.5 text-[11px] text-gray-500 font-medium">
+                        {{ banner.currentPity }}{{ i18n?.ui?.data?.no5star || ' pulls without 6★' }}
+                    </div>
+                  </div>
+                </div>
+
                 <div
                   v-for="(record, rIdx) in banner.ssrRecords"
                   :key="rIdx"
@@ -289,7 +311,7 @@
 
 <script setup>
 import { inject, ref, computed, watch } from "vue";
-import { FolderDelete } from "@element-plus/icons-vue";
+import { FolderDelete, Clock } from "@element-plus/icons-vue";
 
 const i18n = inject("i18n");
 const gachaStateGlobal = inject("gachaState");
@@ -362,23 +384,40 @@ const activeRecords = computed(() => {
 const activeStats = computed(() => {
   const stats = { total: 0, ssrCount: 0, ssrLost: 0, upRate: 0, avgSSR: 0, currentPity: 0 };
   const records = [...activeRecords.value].sort((a, b) => Number(a.id) - Number(b.id));
-  let pity = 0, ssr = 0, ssrPullsTotal = 0;
   
+  // Group by pool to calculate independent pity
+  const poolPityMap = new Map();
+  let totalSsrPulls = 0;
+  let totalSsrCount = 0;
+
   records.forEach((r) => {
+    const pid = r.gacha_id || r.poolId || 'unknown';
+    if (!poolPityMap.has(pid)) poolPityMap.set(pid, 0);
+    
     if (r.isFree) return;
-    pity++;
+    
+    const currentPity = poolPityMap.get(pid) + 1;
+    poolPityMap.set(pid, currentPity);
+
     if (r.rank_type === "6") {
-      ssr++;
-      ssrPullsTotal += pity;
-      pity = 0;
-      // UP logic could be added here if needed for stats card
+      totalSsrCount++;
+      totalSsrPulls += currentPity;
+      poolPityMap.set(pid, 0);
     }
   });
 
   stats.total = records.length;
-  stats.ssrCount = ssr;
-  stats.currentPity = pity;
-  stats.avgSSR = ssr > 0 ? (ssrPullsTotal / ssr).toFixed(1) : 0;
+  stats.ssrCount = totalSsrCount;
+  stats.avgSSR = totalSsrCount > 0 ? (totalSsrPulls / totalSsrCount).toFixed(1) : 0;
+  
+  // For the global "Current Pity" card, we show the pity of the LATEST active pool
+  // (the one with the record having the highest ID)
+  if (records.length > 0) {
+    const latestRecord = records[records.length - 1];
+    const latestPid = latestRecord.gacha_id || latestRecord.poolId || 'unknown';
+    stats.currentPity = poolPityMap.get(latestPid) || 0;
+  }
+  
   return stats;
 });
 
@@ -416,25 +455,33 @@ const bannerList = computed(() => {
       };
     }
     
+    // Calculate pity WITHIN this specific pool
+    let pityInPool = 0;
     const ssrDetails = [];
-    descGroup.forEach(r => {
+    
+    ascGroup.forEach(r => {
+      if (!r.isFree) pityInPool++;
       if (r.rank_type === "6") {
-        const pity = r.isFree ? 0 : getPityForRecord(r);
         ssrDetails.push({
           ...r,
-          pity,
-          displayPity: r.isFree ? "FREE" : pity,
+          pity: r.isFree ? 0 : pityInPool,
+          displayPity: r.isFree ? "FREE" : pityInPool,
           maxValue: activeTypeConfig.value.maxPity
         });
+        pityInPool = 0;
       }
     });
+
+    // Current Pity of this banner (pulls after last SSR)
+    const currentPity = pityInPool;
     
     banners.push({
       id: pid,
       name: poolName,
       totalPulls: groupRecords.length,
       sparkStatus,
-      ssrRecords: ssrDetails,
+      currentPity,
+      ssrRecords: ssrDetails.reverse(), // Show newest SSR first
       startTime: ascGroup[0].time,
       endTime: descGroup[0].time
     });
@@ -448,17 +495,7 @@ const bannerList = computed(() => {
   });
 });
 
-const getPityForRecord = (targetRecord) => {
-  if (targetRecord.isFree) return 0;
-  const ascRecords = [...activeRecords.value].sort((a, b) => Number(a.id) - Number(b.id));
-  let pity = 0;
-  for (const r of ascRecords) {
-    if (!r.isFree) pity++;
-    if (r.id === targetRecord.id) return pity;
-    if (r.rank_type === "6" && !r.isFree) pity = 0;
-  }
-  return 0;
-};
+
 
 const formatDateRange = (s, e) => `${formatFullDate(s)} ~ ${formatFullDate(e)}`;
 const formatFullDate = (str) => {
