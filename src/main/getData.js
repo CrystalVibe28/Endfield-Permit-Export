@@ -1,41 +1,68 @@
-const fs = require('fs-extra')
-const path = require('path')
-const { app, ipcMain, shell } = require('electron')
-const { sendMsg, readJSON, saveJSON, detectLocale, userDataPath, localIp, langMap, sleep } = require('./utils')
-const config = require('./config')
-const i18n = require('./i18n')
-const { mergeData } = require('./utils/mergeData')
+const fs = require("fs-extra");
+const path = require("path");
+const { app, ipcMain, shell } = require("electron");
+const {
+    sendMsg,
+    readJSON,
+    saveJSON,
+    detectLocale,
+    userDataPath,
+    localIp,
+    langMap,
+    sleep,
+} = require("./utils");
+const config = require("./config");
+const i18n = require("./i18n");
+const { mergeData } = require("./utils/mergeData");
 // const gachaTypeRaw = require('../gachaType.json') // Removed or unused
-const fetch = require('electron-fetch').default
+const fetch = require("electron-fetch").default;
 
-const dataMap = new Map()
-let apiDomain = 'https://ef-webview.gryphline.com'
+const dataMap = new Map();
+let apiDomain = "https://ef-webview.gryphline.com";
 
 const saveData = async (data) => {
-    const obj = Object.assign({}, data)
-    obj.result = [...obj.result]
-    if (obj.typeMap) obj.typeMap = [...obj.typeMap]
-    await config.save()
-    await saveJSON(`gacha-list-${data.uid}.json`, obj)
-}
+    const obj = Object.assign({}, data);
+    obj.result = [...obj.result];
+    if (obj.typeMap) obj.typeMap = [...obj.typeMap];
+    await config.save();
+    await saveJSON(`gacha-list-${data.uid}.json`, obj);
+};
 
 const extractEfWebview = async () => {
-    const homeDir = app.getPath('home')
+    const homeDir = app.getPath("home");
     let logPaths = [
-        path.join(homeDir, "AppData", "LocalLow", "Gryphline", "Endfield", "sdklogs", "HGWebview.log"),
-        path.join(homeDir, "AppData", "LocalLow", "Hypergryph", "Endfield", "sdklogs", "HGWebview.log")
-    ]
+        path.join(
+            homeDir,
+            "AppData",
+            "LocalLow",
+            "Gryphline",
+            "Endfield",
+            "sdklogs",
+            "HGWebview.log",
+        ),
+        path.join(
+            homeDir,
+            "AppData",
+            "LocalLow",
+            "Hypergryph",
+            "Endfield",
+            "sdklogs",
+            "HGWebview.log",
+        ),
+    ];
 
     if (config.logType === 3) {
         if (!config.manualUrl) {
-            sendMsg('Manual URL not provided.')
-            return false
+            sendMsg("Manual URL not provided.");
+            return false;
         }
         try {
-            const parsed = new URL(config.manualUrl)
-            const token = parsed.searchParams.get("u8_token") || parsed.searchParams.get("token")
-            const lang = parsed.searchParams.get("lang")
-            const serverRaw = parsed.searchParams.get("server") || parsed.searchParams.get("server_id")
+            const parsed = new URL(config.manualUrl);
+            const token = parsed.searchParams.get("u8_token") ||
+                parsed.searchParams.get("token");
+            const lang = parsed.searchParams.get("lang");
+            const serverRaw = parsed.searchParams.get("server") ||
+                parsed.searchParams.get("server_id");
 
             if (token && lang && serverRaw) {
                 return [{
@@ -43,39 +70,62 @@ const extractEfWebview = async () => {
                     lang,
                     serverId: serverRaw,
                     host: parsed.host,
-                    apiDomain: `${parsed.protocol}//${parsed.host}`
-                }]
+                    apiDomain: `${parsed.protocol}//${parsed.host}`,
+                }];
             } else {
-                 sendMsg('Invalid Manual URL format.')
-                 return false
+                sendMsg("Invalid Manual URL format.");
+                return false;
             }
         } catch (e) {
-            sendMsg('Error parsing Manual URL.')
-            return false
+            sendMsg("Error parsing Manual URL.");
+            return false;
         }
     }
 
     if (config.logType === 1) {
-        logPaths = [path.join(homeDir, "AppData", "LocalLow", "Hypergryph", "Endfield", "sdklogs", "HGWebview.log")]
+        logPaths = [
+            path.join(
+                homeDir,
+                "AppData",
+                "LocalLow",
+                "Hypergryph",
+                "Endfield",
+                "sdklogs",
+                "HGWebview.log",
+            ),
+        ];
     } else if (config.logType === 2) {
-        logPaths = [path.join(homeDir, "AppData", "LocalLow", "Gryphline", "Endfield", "sdklogs", "HGWebview.log")]
+        logPaths = [
+            path.join(
+                homeDir,
+                "AppData",
+                "LocalLow",
+                "Gryphline",
+                "Endfield",
+                "sdklogs",
+                "HGWebview.log",
+            ),
+        ];
     }
 
-    const allInfos = []
+    const allInfos = [];
 
     for (const logPath of logPaths) {
         try {
             if (await fs.pathExists(logPath)) {
-                const content = await fs.readFile(logPath, "utf-8")
-                const regex = /https:\/\/ef-webview\.(gryphline|hypergryph)\.com[^\s"'<>]*[&\?](u8_token|token)=[^&\s"'<>]+[^\s"'<>]*/g
-                const matches = content.match(regex)
+                const content = await fs.readFile(logPath, "utf-8");
+                const regex =
+                    /https:\/\/ef-webview\.(gryphline|hypergryph)\.com[^\s"'<>]*[&\?](u8_token|token)=[^&\s"'<>]+[^\s"'<>]*/g;
+                const matches = content.match(regex);
 
                 if (matches && matches.length > 0) {
-                    const latestUrl = matches[matches.length - 1]
-                    const parsed = new URL(latestUrl)
-                    const token = parsed.searchParams.get("u8_token") || parsed.searchParams.get("token")
-                    const lang = parsed.searchParams.get("lang")
-                    const serverRaw = parsed.searchParams.get("server") || parsed.searchParams.get("server_id")
+                    const latestUrl = matches[matches.length - 1];
+                    const parsed = new URL(latestUrl);
+                    const token = parsed.searchParams.get("u8_token") ||
+                        parsed.searchParams.get("token");
+                    const lang = parsed.searchParams.get("lang");
+                    const serverRaw = parsed.searchParams.get("server") ||
+                        parsed.searchParams.get("server_id");
 
                     if (token && lang && serverRaw) {
                         allInfos.push({
@@ -83,46 +133,48 @@ const extractEfWebview = async () => {
                             lang,
                             serverId: serverRaw,
                             host: parsed.host,
-                            apiDomain: `${parsed.protocol}//${parsed.host}`
-                        })
+                            apiDomain: `${parsed.protocol}//${parsed.host}`,
+                        });
                     }
                 }
             }
-        } catch (e) { }
+        } catch (e) {}
     }
 
     if (allInfos.length === 0) {
-        sendMsg('No valid log files or URLs found.')
-        return false
+        sendMsg("No valid log files or URLs found.");
+        return false;
     }
 
-    return allInfos
-}
+    return allInfos;
+};
 
 const POOL_TYPES = [
-    'E_CharacterGachaPoolType_Standard',
-    'E_CharacterGachaPoolType_Special',
-    'E_CharacterGachaPoolType_Beginner',
-]
+    "E_CharacterGachaPoolType_Standard",
+    "E_CharacterGachaPoolType_Special",
+    "E_CharacterGachaPoolType_Beginner",
+];
 
 const poolIdMap = {
-    'E_CharacterGachaPoolType_Standard': 'standard',
-    'E_CharacterGachaPoolType_Special': 'special',
-    'E_CharacterGachaPoolType_Beginner': 'beginner'
-}
+    "E_CharacterGachaPoolType_Standard": "standard",
+    "E_CharacterGachaPoolType_Special": "special",
+    "E_CharacterGachaPoolType_Beginner": "beginner",
+};
 
 const adaptUserLog = (userLog, poolType) => {
     // timestamp "1769062855302" -> "YYYY-MM-DD HH:mm:ss"
     const date = new Date(parseInt(userLog.gachaTs));
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
     const timeStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
-    const gacha_type = userLog.isFree ? 'urgent' : (poolIdMap[poolType] || 'standard')
+    const gacha_type = userLog.isFree
+        ? "urgent"
+        : (poolIdMap[poolType] || "standard");
     return {
         id: userLog.seqId,
         item_id: userLog.charId,
@@ -132,34 +184,37 @@ const adaptUserLog = (userLog, poolType) => {
         time: timeStr,
         gacha_id: userLog.poolId,
         gacha_type,
-        count: "1"
-    }
-}
+        count: "1",
+    };
+};
 // ... (skip lines)
 
 const processGryphlineList = ({ characterList = [], weaponList = [] }) => {
-    const result = new Map()
+    const result = new Map();
     // Initialize lists
     const pools = {
-        'standard': [],   
-        'special': [],  
-        'weapon': [],  
-        'beginner': [],  
-        'urgent': []  
-    }
+        "standard": [],
+        "special": [],
+        "weapon": [],
+        "beginner": [],
+        "urgent": [],
+    };
 
     // Process Characters
-    const sortedChars = [...characterList].sort((a, b) => Number(a.seqId) - Number(b.seqId))
+    const sortedChars = [...characterList].sort((a, b) =>
+        Number(a.seqId) - Number(b.seqId)
+    );
     for (const item of sortedChars) {
         // Adapt fields
-        const date = new Date(parseInt(item.gachaTs))
-        const year = date.getFullYear()
-        const month = String(date.getMonth() + 1).padStart(2, '0')
-        const day = String(date.getDate()).padStart(2, '0')
-        const hours = String(date.getHours()).padStart(2, '0')
-        const minutes = String(date.getMinutes()).padStart(2, '0')
-        const seconds = String(date.getSeconds()).padStart(2, '0')
-        const timeStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+        const date = new Date(parseInt(item.gachaTs));
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        const seconds = String(date.getSeconds()).padStart(2, "0");
+        const timeStr =
+            `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
         const adapted = {
             id: item.seqId,
@@ -171,44 +226,47 @@ const processGryphlineList = ({ characterList = [], weaponList = [] }) => {
             gacha_id: item.poolId,
             poolId: item.poolId,
             poolName: item.poolName,
-            count: "1"
-        }
+            count: "1",
+        };
 
         // Categorize Characters
         if (item.isFree) {
-            adapted.gacha_type = 'urgent'
-            pools['urgent'].push(adapted)
+            adapted.gacha_type = "urgent";
+            pools["urgent"].push(adapted);
         } else {
-            const pid = item.poolId || ''
-            if (pid === 'standard') {
-                adapted.gacha_type = 'standard'
-                pools['standard'].push(adapted)
-            } else if (pid === 'beginner') {
-                adapted.gacha_type = 'beginner'
-                pools['beginner'].push(adapted)
-            } else if (pid.startsWith('special_')) {
-                adapted.gacha_type = 'special'
-                pools['special'].push(adapted)
+            const pid = item.poolId || "";
+            if (pid === "standard") {
+                adapted.gacha_type = "standard";
+                pools["standard"].push(adapted);
+            } else if (pid === "beginner") {
+                adapted.gacha_type = "beginner";
+                pools["beginner"].push(adapted);
+            } else if (pid.startsWith("special_")) {
+                adapted.gacha_type = "special";
+                pools["special"].push(adapted);
             } else {
                 // Fallback for unknown character pools
-                adapted.gacha_type = 'standard'
-                pools['standard'].push(adapted)
+                adapted.gacha_type = "standard";
+                pools["standard"].push(adapted);
             }
         }
     }
 
     // Process Weapons
-    const sortedWeapons = [...weaponList].sort((a, b) => Number(a.seqId) - Number(b.seqId))
+    const sortedWeapons = [...weaponList].sort((a, b) =>
+        Number(a.seqId) - Number(b.seqId)
+    );
     for (const item of sortedWeapons) {
         // Adapt fields
-        const date = new Date(parseInt(item.gachaTs))
-        const year = date.getFullYear()
-        const month = String(date.getMonth() + 1).padStart(2, '0')
-        const day = String(date.getDate()).padStart(2, '0')
-        const hours = String(date.getHours()).padStart(2, '0')
-        const minutes = String(date.getMinutes()).padStart(2, '0')
-        const seconds = String(date.getSeconds()).padStart(2, '0')
-        const timeStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+        const date = new Date(parseInt(item.gachaTs));
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        const seconds = String(date.getSeconds()).padStart(2, "0");
+        const timeStr =
+            `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
         const adapted = {
             id: item.seqId,
@@ -221,50 +279,61 @@ const processGryphlineList = ({ characterList = [], weaponList = [] }) => {
             poolId: item.poolId,
             poolName: item.poolName,
             count: "1",
-            gacha_type: 'weapon'
-        }
+            gacha_type: "weapon",
+        };
 
-        pools['weapon'].push(adapted)
+        pools["weapon"].push(adapted);
     }
 
     for (const [key, list] of Object.entries(pools)) {
-        if (list.length > 0) result.set(key, list)
+        if (list.length > 0) result.set(key, list);
     }
-    return result
-}
+    return result;
+};
 
-const saveGryphlineData = async (uid, { characterList = [], weaponList = [], lang }) => {
-    const fileName = `endfield-list-${uid}.json`
-    let existingData = { 
-        info: { 
-            uid, 
-            export_timestamp: Math.floor(Date.now()/1000), 
+const saveGryphlineData = async (
+    uid,
+    { characterList = [], weaponList = [], lang },
+) => {
+    const fileName = `endfield-list-${uid}.json`;
+    let existingData = {
+        info: {
+            uid,
+            export_timestamp: Math.floor(Date.now() / 1000),
             app_version: app.getVersion(),
-            lang: lang || config.lang
-        }, 
+            lang: lang || config.lang,
+        },
         characterList: [],
-        weaponList: []
-    }
-    
+        weaponList: [],
+    };
+
     try {
-        const loaded = await readJSON(userDataPath, fileName)
+        const loaded = await readJSON(userDataPath, fileName);
         if (loaded) {
             if (loaded.list) {
                 // Migration: Split old mixed list
-                const oldList = loaded.list
-                existingData.characterList = oldList.filter(item => item.charId)
-                existingData.weaponList = oldList.filter(item => item.weaponId)
+                const oldList = loaded.list;
+                existingData.characterList = oldList.filter((item) =>
+                    item.charId
+                );
+                existingData.weaponList = oldList.filter((item) =>
+                    item.weaponId
+                );
                 // Use loaded info if available
                 if (loaded.info) {
-                    existingData.info = loaded.info
-                    if (lang) existingData.info.lang = lang
+                    existingData.info = loaded.info;
+                    if (lang) existingData.info.lang = lang;
                 }
             } else {
-                if (loaded.characterList) existingData.characterList = loaded.characterList
-                if (loaded.weaponList) existingData.weaponList = loaded.weaponList
+                if (loaded.characterList) {
+                    existingData.characterList = loaded.characterList;
+                }
+                if (loaded.weaponList) {
+                    existingData.weaponList = loaded.weaponList;
+                }
                 if (loaded.info) {
-                    existingData.info = loaded.info
-                    if (lang) existingData.info.lang = lang
+                    existingData.info = loaded.info;
+                    if (lang) existingData.info.lang = lang;
                 }
             }
         }
@@ -272,375 +341,509 @@ const saveGryphlineData = async (uid, { characterList = [], weaponList = [], lan
 
     // Merge Character List
     if (characterList && characterList.length > 0) {
-        const existingIds = new Set(existingData.characterList.map(i => String(i.seqId)))
-        const toAdd = characterList.filter(i => !existingIds.has(String(i.seqId)))
+        const existingIds = new Set(
+            existingData.characterList.map((i) => String(i.seqId)),
+        );
+        const toAdd = characterList.filter((i) =>
+            !existingIds.has(String(i.seqId))
+        );
         if (toAdd.length > 0) {
-            existingData.characterList.push(...toAdd)
+            existingData.characterList.push(...toAdd);
         }
     }
     // Sort Characters (Newest first)
-    existingData.characterList.sort((a, b) => Number(b.seqId) - Number(a.seqId))
+    existingData.characterList.sort((a, b) =>
+        Number(b.seqId) - Number(a.seqId)
+    );
 
     // Merge Weapon List
     if (weaponList && weaponList.length > 0) {
-        const existingIds = new Set(existingData.weaponList.map(i => String(i.seqId)))
-        const toAdd = weaponList.filter(i => !existingIds.has(String(i.seqId)))
+        const existingIds = new Set(
+            existingData.weaponList.map((i) => String(i.seqId)),
+        );
+        const toAdd = weaponList.filter((i) =>
+            !existingIds.has(String(i.seqId))
+        );
         if (toAdd.length > 0) {
-            existingData.weaponList.push(...toAdd)
+            existingData.weaponList.push(...toAdd);
         }
     }
     // Sort Weapons (Newest first)
-    existingData.weaponList.sort((a, b) => Number(b.seqId) - Number(a.seqId))
-    
-    existingData.info.export_timestamp = Math.floor(Date.now()/1000)
-    existingData.info.app_version = app.getVersion()
-    
-    await saveJSON(fileName, existingData)
-}
+    existingData.weaponList.sort((a, b) => Number(b.seqId) - Number(a.seqId));
+
+    existingData.info.export_timestamp = Math.floor(Date.now() / 1000);
+    existingData.info.app_version = app.getVersion();
+
+    await saveJSON(fileName, existingData);
+};
 
 const fetchCharRecord = async ({ token, lang, serverId, poolType, seqId }) => {
-    const url = new URL(`${apiDomain}/api/record/char`)
-    url.searchParams.append('token', token)
-    url.searchParams.append('lang', lang)
-    url.searchParams.append('server_id', serverId)
-    url.searchParams.append('pool_type', poolType)
-    if (seqId) url.searchParams.append('seq_id', seqId)
+    const url = new URL(`${apiDomain}/api/record/char`);
+    url.searchParams.append("token", token);
+    url.searchParams.append("lang", lang);
+    url.searchParams.append("server_id", serverId);
+    url.searchParams.append("pool_type", poolType);
+    if (seqId) url.searchParams.append("seq_id", seqId);
 
     // DEBUG LOG
-    console.log(`[fetchCharRecord] Fetching: ${url.toString()}`)
+    console.log(`[fetchCharRecord] Fetching: ${url.toString()}`);
 
-    const response = await fetch(url.toString())
-    if (!response.ok) throw new Error(`API error: ${response.status}`)
-    return await response.json()
-}
+    const response = await fetch(url.toString());
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    return await response.json();
+};
 
 const fetchWeaponPools = async ({ lang, token, serverId }) => {
-    const url = new URL(`${apiDomain}/api/record/weapon/pool`)
-    url.searchParams.append('lang', lang)
-    url.searchParams.append('token', token)
-    url.searchParams.append('server_id', serverId)
-    const response = await fetch(url.toString())
-    if (!response.ok) throw new Error(`API error: ${response.status}`)
-    return await response.json()
-}
+    const url = new URL(`${apiDomain}/api/record/weapon/pool`);
+    url.searchParams.append("lang", lang);
+    url.searchParams.append("token", token);
+    url.searchParams.append("server_id", serverId);
+    const response = await fetch(url.toString());
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    return await response.json();
+};
 
 const fetchWeaponRecord = async ({ token, lang, serverId, poolId, seqId }) => {
-    const url = new URL(`${apiDomain}/api/record/weapon`)
-    url.searchParams.append('token', token)
-    url.searchParams.append('lang', lang)
-    url.searchParams.append('server_id', serverId)
-    url.searchParams.append('pool_id', poolId)
-    if (seqId) url.searchParams.append('seq_id', seqId)
+    const url = new URL(`${apiDomain}/api/record/weapon`);
+    url.searchParams.append("token", token);
+    url.searchParams.append("lang", lang);
+    url.searchParams.append("server_id", serverId);
+    if (poolId) url.searchParams.append("pool_id", poolId);
+    if (seqId) url.searchParams.append("seq_id", seqId);
 
-    const response = await fetch(url.toString())
-    if (!response.ok) throw new Error(`API error: ${response.status}`)
-    return await response.json()
-}
+    const response = await fetch(url.toString());
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    return await response.json();
+};
 
-const getAllRecord = async ({ token, lang, serverId, existingSeqIds = new Set() }) => {
-    const typeMap = new Map()
+const getAllRecord = async (
+    {
+        token,
+        lang,
+        serverId,
+        charSeqIds = new Set(),
+        wepSeqIds = new Set(),
+        minCharGap = 0,
+        minWepGap = 0,
+    },
+) => {
+    const typeMap = new Map();
     // Populate typeMap for logging purposes
-    typeMap.set('standard', i18n.parse(i18n.gacha.type.standard))
-    typeMap.set('special', i18n.parse(i18n.gacha.type.special))
-    typeMap.set('beginner', i18n.parse(i18n.gacha.type.beginner))
-    typeMap.set('urgent', i18n.parse(i18n.gacha.type.urgent))
-    
-    const characterList = []
-    const weaponList = []
+    typeMap.set("standard", i18n.parse(i18n.gacha.type.standard));
+    typeMap.set("special", i18n.parse(i18n.gacha.type.special));
+    typeMap.set("weapon", i18n.parse(i18n.gacha.type.weapon));
+    typeMap.set("beginner", i18n.parse(i18n.gacha.type.beginner));
+    typeMap.set("urgent", i18n.parse(i18n.gacha.type.urgent));
 
-    sendMsg(i18n.parse(i18n.log.fetch.gachaType))
-    await sleep(1) 
-    sendMsg(i18n.parse(i18n.log.fetch.gachaTypeOk))
+    const characterList = [];
+    const weaponList = [];
+
+    sendMsg(i18n.parse(i18n.log.fetch.gachaType));
+    await sleep(1);
+    sendMsg(i18n.parse(i18n.log.fetch.gachaTypeOk));
 
     // 1. Character Pools
     for (const poolType of POOL_TYPES) {
-        let hasMore = true
-        let lastSeqId = undefined
-        const mappedKey = poolIdMap[poolType]
-        const name = typeMap.get(mappedKey)
-        let page = 1
+        let hasMore = true;
+        let lastSeqId = undefined;
+        const mappedKey = poolIdMap[poolType];
+        const name = typeMap.get(mappedKey);
+        let page = 1;
 
         while (hasMore) {
             if (page % 10 === 0 && page > 0) {
-                sendMsg(i18n.parse(i18n.log.fetch.interval, { name, page }))
-                await sleep(1)
+                sendMsg(i18n.parse(i18n.log.fetch.interval, { name, page }));
+                await sleep(1);
             } else {
-                sendMsg(i18n.parse(i18n.log.fetch.current, { name, page }))
+                sendMsg(i18n.parse(i18n.log.fetch.current, { name, page }));
             }
 
             // Retry logic
-            let retryCount = 0
-            let success = false
-            let res = null
+            let retryCount = 0;
+            let success = false;
+            let res = null;
 
             while (retryCount < 5) {
                 try {
-                    res = await fetchCharRecord({ token, lang, serverId, poolType, seqId: lastSeqId })
+                    res = await fetchCharRecord({
+                        token,
+                        lang,
+                        serverId,
+                        poolType,
+                        seqId: lastSeqId,
+                    });
 
                     if (!res || !res.data) {
-                        const message = res ? res.message : 'Unknown error'
-                        if (message === 'auth key timeout' || (res && res.code === -101)) {
-                            throw new Error('AUTH_TIMEOUT')
+                        const message = res ? res.message : "Unknown error";
+                        if (
+                            message === "auth key timeout" ||
+                            (res && res.code === -101)
+                        ) {
+                            throw new Error("AUTH_TIMEOUT");
                         }
-                        throw new Error(`API Error: ${message}`)
+                        throw new Error(`API Error: ${message}`);
                     }
 
-                    success = true
-                    break
+                    success = true;
+                    break;
                 } catch (e) {
-                    if (e.message === 'AUTH_TIMEOUT' || (res && res.code === -101)) {
-                        sendMsg(i18n.log.fetch.authTimeout)
-                        throw e
+                    if (
+                        e.message === "AUTH_TIMEOUT" ||
+                        (res && res.code === -101)
+                    ) {
+                        sendMsg(i18n.log.fetch.authTimeout);
+                        throw e;
                     }
 
-                    retryCount++
+                    retryCount++;
                     if (retryCount >= 5) {
-                        sendMsg(i18n.parse(i18n.log.fetch.retryFailed, { name, page }))
-                        hasMore = false 
-                        break
+                        sendMsg(
+                            i18n.parse(i18n.log.fetch.retryFailed, {
+                                name,
+                                page,
+                            }),
+                        );
+                        hasMore = false;
+                        break;
                     }
 
-                    sendMsg(i18n.parse(i18n.log.fetch.retry, { name, page, count: retryCount }))
-                    await sleep(5)
+                    sendMsg(
+                        i18n.parse(i18n.log.fetch.retry, {
+                            name,
+                            page,
+                            count: retryCount,
+                        }),
+                    );
+                    await sleep(5);
                 }
             }
 
-            if (!success) break
+            if (!success) break;
 
-            const list = res.data.list
-            
+            const list = res.data.list;
+
             if (!(page % 10 === 0)) {
-                await sleep(0.5)
+                await sleep(0.5);
             }
 
             if (list && list.length > 0) {
-                let foundExisting = false
+                let stopFetch = false;
                 for (const item of list) {
-                    if (existingSeqIds.has(String(item.seqId))) {
-                        foundExisting = true
-                        break
-                    }
-                    characterList.push(item)
-                }
+                    const sid = String(item.seqId);
+                    const sidNum = Number(sid);
 
-                if (foundExisting) {
-                    sendMsg(i18n.parse(i18n.log.fetch.skip, { name }))
-                    hasMore = false
-                    break
-                }
-                
-                lastSeqId = list[list.length - 1].seqId
-            }
-            hasMore = res.data.hasMore
-            page++
-        }
-    }
-
-    // 2. Weapon Pools
-    let weaponPoolsData = []
-    try {
-        const wpRes = await fetchWeaponPools({ lang, token, serverId })
-        if (wpRes && wpRes.data) {
-            weaponPoolsData = wpRes.data
-        }
-    } catch (e) {
-        console.error("Failed to fetch weapon pools", e)
-    }
-
-    for (const pool of weaponPoolsData) {
-        const poolType = pool.poolId
-        const poolName = pool.poolName
-        // Use poolName for logging
-        
-        let hasMore = true
-        let lastSeqId = undefined
-        const name = poolName
-        let page = 1
-
-        while (hasMore) {
-            if (page % 10 === 0 && page > 0) {
-                sendMsg(i18n.parse(i18n.log.fetch.interval, { name, page }))
-                await sleep(1)
-            } else {
-                sendMsg(i18n.parse(i18n.log.fetch.current, { name, page }))
-            }
-
-            // Retry logic
-            let retryCount = 0
-            let success = false
-            let res = null
-
-            while (retryCount < 5) {
-                try {
-                    res = await fetchWeaponRecord({ token, lang, serverId, poolId: poolType, seqId: lastSeqId })
-
-                    if (!res || !res.data) {
-                        const message = res ? res.message : 'Unknown error'
-                        if (message === 'auth key timeout' || (res && res.code === -101)) {
-                            throw new Error('AUTH_TIMEOUT')
+                    if (charSeqIds.has(sid)) {
+                        // If we hit an existing ID and it's below the known gap, we can stop
+                        if (sidNum < minCharGap || minCharGap === 0) {
+                            stopFetch = true;
+                            break;
                         }
-                        throw new Error(`API Error: ${message}`)
+                        continue;
                     }
-
-                    success = true
-                    break
-                } catch (e) {
-                    if (e.message === 'AUTH_TIMEOUT' || (res && res.code === -101)) {
-                        sendMsg(i18n.log.fetch.authTimeout)
-                        throw e
-                    }
-
-                    retryCount++
-                    if (retryCount >= 5) {
-                        sendMsg(i18n.parse(i18n.log.fetch.retryFailed, { name, page }))
-                        hasMore = false
-                        break
-                    }
-
-                    sendMsg(i18n.parse(i18n.log.fetch.retry, { name, page, count: retryCount }))
-                    await sleep(5)
-                }
-            }
-
-            if (!success) break
-
-            const list = res.data.list
-
-            if (!(page % 10 === 0)) {
-                await sleep(0.5)
-            }
-
-            if (list && list.length > 0) {
-                let foundExisting = false
-                for (const item of list) {
-                    if (existingSeqIds.has(String(item.seqId))) {
-                        foundExisting = true
-                        break
-                    }
-                    weaponList.push(item)
+                    characterList.push(item);
                 }
 
-                if (foundExisting) {
-                    sendMsg(i18n.parse(i18n.log.fetch.skip, { name }))
-                    hasMore = false
-                    break
+                if (stopFetch) {
+                    sendMsg(i18n.parse(i18n.log.fetch.skip, { name }));
+                    hasMore = false;
+                    break;
                 }
 
-                lastSeqId = list[list.length - 1].seqId
+                lastSeqId = list[list.length - 1].seqId;
             }
-            hasMore = res.data.hasMore
-            page++
+            hasMore = res.data.hasMore;
+            page++;
         }
     }
 
-    return { characterList, weaponList }
-}
+    // 2. Weapon Records (Optimized: single pass for all pools)
+    let hasMoreWep = true;
+    let lastSeqIdWep = undefined;
+    const wepName = typeMap.get("weapon") || "Weapon";
+    let wepPage = 1;
 
+    while (hasMoreWep) {
+        if (wepPage % 10 === 0 && wepPage > 0) {
+            sendMsg(
+                i18n.parse(i18n.log.fetch.interval, {
+                    name: wepName,
+                    page: wepPage,
+                }),
+            );
+            await sleep(1);
+        } else {
+            sendMsg(
+                i18n.parse(i18n.log.fetch.current, {
+                    name: wepName,
+                    page: wepPage,
+                }),
+            );
+        }
+
+        let retryCount = 0;
+        let success = false;
+        let res = null;
+
+        while (retryCount < 5) {
+            try {
+                res = await fetchWeaponRecord({
+                    token,
+                    lang,
+                    serverId,
+                    seqId: lastSeqIdWep,
+                });
+                if (!res || !res.data) {
+                    throw new Error(res ? res.message : "Unknown error");
+                }
+                success = true;
+                break;
+            } catch (e) {
+                if (
+                    e.message === "auth key timeout" ||
+                    (res && res.code === -101)
+                ) {
+                    sendMsg(i18n.log.fetch.authTimeout);
+                    throw e;
+                }
+                retryCount++;
+                if (retryCount >= 5) {
+                    sendMsg(
+                        i18n.parse(i18n.log.fetch.retryFailed, {
+                            name: wepName,
+                            page: wepPage,
+                        }),
+                    );
+                    hasMoreWep = false;
+                    break;
+                }
+                sendMsg(
+                    i18n.parse(i18n.log.fetch.retry, {
+                        name: wepName,
+                        page: wepPage,
+                        count: retryCount,
+                    }),
+                );
+                await sleep(5);
+            }
+        }
+
+        if (!success) break;
+
+        const list = res.data.list;
+        if (!(wepPage % 10 === 0)) await sleep(0.5);
+
+        if (list && list.length > 0) {
+            let stopFetchWep = false;
+            for (const item of list) {
+                const sid = String(item.seqId);
+                const sidNum = Number(sid);
+
+                if (wepSeqIds.has(sid)) {
+                    if (sidNum < minWepGap || minWepGap === 0) {
+                        stopFetchWep = true;
+                        break;
+                    }
+                    continue;
+                }
+                weaponList.push(item);
+            }
+
+            if (stopFetchWep) {
+                sendMsg(i18n.parse(i18n.log.fetch.skip, { name: wepName }));
+                hasMoreWep = false;
+                break;
+            }
+            lastSeqIdWep = list[list.length - 1].seqId;
+        }
+        hasMoreWep = res.data.hasMore;
+        wepPage++;
+    }
+
+    return { characterList, weaponList };
+};
 
 const fetchData = async () => {
-    await readData() // Load existing local data
+    await readData(); // Load existing local data
 
-    const allInfos = await extractEfWebview()
-    if (!allInfos) return
+    const allInfos = await extractEfWebview();
+    if (!allInfos) return;
 
     for (const info of allInfos) {
-        const { token, lang, serverId, host, apiDomain: currentApiDomain } = info
+        const { token, lang, serverId, host, apiDomain: currentApiDomain } =
+            info;
 
         // Update global apiDomain for this fetch iteration
-        apiDomain = currentApiDomain
+        apiDomain = currentApiDomain;
 
         // Keep standard Global UID format as EF_serverId, only prefix CN server
-        let uid = `EF_${serverId}`
-        if (host.includes('hypergryph')) {
-            uid = `EF_CN_${serverId}`
+        let uid = `EF_${serverId}`;
+        if (host.includes("hypergryph")) {
+            uid = `EF_CN_${serverId}`;
         }
 
-        sendMsg(`Processing account: ${uid}`)
+        sendMsg(`Processing account: ${uid}`);
 
         // Incremental update optimization: prepare existing seqIds
-        const existingSeqIds = new Set()
-        let fileName = `endfield-list-${uid}.json`
+        const charSeqIds = new Set();
+        const wepSeqIds = new Set();
+        const existingSeqIds = new Set(); // For compatibility with existing logic if needed
+
+        let fileName = `endfield-list-${uid}.json`;
         try {
-            const loaded = await readJSON(userDataPath, fileName)
+            const loaded = await readJSON(userDataPath, fileName);
             if (loaded) {
-                const charList = loaded.characterList || []
-                const wepList = loaded.weaponList || []
-                charList.forEach(i => existingSeqIds.add(String(i.seqId)))
-                wepList.forEach(i => existingSeqIds.add(String(i.seqId)))
-                
-                // Also support legacy 'list' key if migrating
+                const charList = loaded.characterList || [];
+                const wepList = loaded.weaponList || [];
+                charList.forEach((i) => {
+                    charSeqIds.add(String(i.seqId));
+                    existingSeqIds.add(String(i.seqId));
+                });
+                wepList.forEach((i) => {
+                    wepSeqIds.add(String(i.seqId));
+                    existingSeqIds.add(String(i.seqId));
+                });
+
                 if (loaded.list) {
-                    loaded.list.forEach(i => existingSeqIds.add(String(i.seqId)))
+                    loaded.list.forEach((i) => {
+                        const sid = String(i.seqId);
+                        existingSeqIds.add(sid);
+                        if (i.charId) charSeqIds.add(sid);
+                        else wepSeqIds.add(sid);
+                    });
                 }
             }
         } catch {}
 
-        const { characterList, weaponList } = await getAllRecord({ token, lang, serverId, existingSeqIds })
-        const data = { uid, rawList: [] } // Legacy structure not used but defined
-        
+        // Detect Gaps in sequence IDs
+        let minCharGap = 0;
+        let minWepGap = 0;
+
+        if (config.fetchFullHistory) {
+            sendMsg(
+                "Full history fetch enabled in settings. Filling gaps mode activated.",
+            );
+            // Using 0 as minGap with config.fetchFullHistory = true is handled by checking config later,
+            // but the loops currently use (sidNum < minGap || minGap === 0) to stop.
+            // So if fetchFullHistory is true, we should set minGap to -1 to NEVER stop.
+            minCharGap = -1;
+            minWepGap = -1;
+        } else {
+            const getMinGap = (idSet) => {
+                const sortedIds = Array.from(idSet).map((id) => Number(id))
+                    .sort((a, b) => a - b);
+                for (let i = 0; i < sortedIds.length - 1; i++) {
+                    if (sortedIds[i + 1] - sortedIds[i] > 1) {
+                        return sortedIds[i]; // The gap is above this ID
+                    }
+                }
+                return 0;
+            };
+
+            minCharGap = getMinGap(charSeqIds);
+            minWepGap = getMinGap(wepSeqIds);
+
+            if (minCharGap > 0 || minWepGap > 0) {
+                sendMsg(
+                    "Gaps detected in local data. Filling gaps mode activated.",
+                );
+            }
+        }
+
+        const { characterList, weaponList } = await getAllRecord({
+            token,
+            lang,
+            serverId,
+            charSeqIds,
+            wepSeqIds,
+            minCharGap,
+            minWepGap,
+        });
+        const data = { uid, rawList: [] }; // Legacy structure not used but defined
+
         // Save raw Gryphline data
-        await saveGryphlineData(uid, { characterList, weaponList, lang })
-        
+        await saveGryphlineData(uid, { characterList, weaponList, lang });
+
         // Read back updated data
-        fileName = `endfield-list-${uid}.json`
+        fileName = `endfield-list-${uid}.json`;
         try {
-            const loaded = await readJSON(userDataPath, fileName)
+            const loaded = await readJSON(userDataPath, fileName);
             if (loaded) { // loaded can be object with characterList/weaponList
-                let charList = loaded.characterList || []
-                let wepList = loaded.weaponList || []
-                
+                let charList = loaded.characterList || [];
+                let wepList = loaded.weaponList || [];
+
                 // Fallback for immediate processing if load fails to find new keys immediately (unlikely)
                 if (loaded.list) {
-                    charList = loaded.list.filter(i => i.charId)
-                    wepList = loaded.list.filter(i => i.weaponId)
+                    charList = loaded.list.filter((i) => i.charId);
+                    wepList = loaded.list.filter((i) => i.weaponId);
                 }
 
-                const processedResult = processGryphlineList({ characterList: charList, weaponList: wepList })
-                
+                const processedResult = processGryphlineList({
+                    characterList: charList,
+                    weaponList: wepList,
+                });
+
                 const uiData = {
                     uid: uid,
                     time: loaded.info.export_timestamp * 1000,
                     result: processedResult,
                     typeMap: new Map(),
                     // rawList: ... // not strictly needed for UI if result is populated
-                }
-                
-                uiData.typeMap.set('standard', i18n.parse(i18n.gacha.type.standard))
-                uiData.typeMap.set('special', i18n.parse(i18n.gacha.type.special))
-                uiData.typeMap.set('weapon', i18n.parse(i18n.gacha.type.weapon))
-                uiData.typeMap.set('beginner', i18n.parse(i18n.gacha.type.beginner))
-                uiData.typeMap.set('urgent', i18n.parse(i18n.gacha.type.urgent))
+                };
 
-                dataMap.set(uid, uiData)
-                await changeCurrent(uid)
+                uiData.typeMap.set(
+                    "standard",
+                    i18n.parse(i18n.gacha.type.standard),
+                );
+                uiData.typeMap.set(
+                    "special",
+                    i18n.parse(i18n.gacha.type.special),
+                );
+                uiData.typeMap.set(
+                    "weapon",
+                    i18n.parse(i18n.gacha.type.weapon),
+                );
+                uiData.typeMap.set(
+                    "beginner",
+                    i18n.parse(i18n.gacha.type.beginner),
+                );
+                uiData.typeMap.set(
+                    "urgent",
+                    i18n.parse(i18n.gacha.type.urgent),
+                );
+
+                dataMap.set(uid, uiData);
+                await changeCurrent(uid);
             }
         } catch (e) {
-            console.error("Failed to process saved gryphline data", e)
+            console.error("Failed to process saved gryphline data", e);
         }
     }
-}
+};
 
 const readData = async () => {
-    await fs.ensureDir(userDataPath)
-    dataMap.clear()
-    const files = await fs.readdir(userDataPath)
+    await fs.ensureDir(userDataPath);
+    dataMap.clear();
+    const files = await fs.readdir(userDataPath);
     for (let name of files) {
         if (/^(gryphline|endfield)-list-.+\.json$/.test(name)) {
             try {
-                const data = await readJSON(userDataPath, name)
+                const data = await readJSON(userDataPath, name);
                 if (data.info && data.info.uid) {
-                    const uid = data.info.uid
-                    let charList = data.characterList || []
-                    let wepList = data.weaponList || []
-                    
+                    const uid = data.info.uid;
+                    let charList = data.characterList || [];
+                    let wepList = data.weaponList || [];
+
                     // Migration on read if needed (though save handles it on next fetch)
                     if (data.list && (!charList.length && !wepList.length)) {
-                        charList = data.list.filter(i => i.charId)
-                        wepList = data.list.filter(i => i.weaponId)
+                        charList = data.list.filter((i) => i.charId);
+                        wepList = data.list.filter((i) => i.weaponId);
                     }
 
-                    const processedResult = processGryphlineList({ characterList: charList, weaponList: wepList })
-                    
+                    const processedResult = processGryphlineList({
+                        characterList: charList,
+                        weaponList: wepList,
+                    });
+
                     const uiData = {
                         uid: uid,
                         lang: data.info.lang || config.lang,
@@ -648,84 +851,106 @@ const readData = async () => {
                         result: processedResult,
                         typeMap: new Map(),
                         // rawList: data.list // Legacy
-                    }
-                    
-                    uiData.typeMap.set('standard', i18n.parse(i18n.gacha.type.standard))
-                    uiData.typeMap.set('special', i18n.parse(i18n.gacha.type.special))
-                    uiData.typeMap.set('weapon', i18n.parse(i18n.gacha.type.weapon))
-                    uiData.typeMap.set('beginner', i18n.parse(i18n.gacha.type.beginner))
-                    uiData.typeMap.set('urgent', i18n.parse(i18n.gacha.type.urgent))
+                    };
 
-                    dataMap.set(uid, uiData)
+                    uiData.typeMap.set(
+                        "standard",
+                        i18n.parse(i18n.gacha.type.standard),
+                    );
+                    uiData.typeMap.set(
+                        "special",
+                        i18n.parse(i18n.gacha.type.special),
+                    );
+                    uiData.typeMap.set(
+                        "weapon",
+                        i18n.parse(i18n.gacha.type.weapon),
+                    );
+                    uiData.typeMap.set(
+                        "beginner",
+                        i18n.parse(i18n.gacha.type.beginner),
+                    );
+                    uiData.typeMap.set(
+                        "urgent",
+                        i18n.parse(i18n.gacha.type.urgent),
+                    );
+
+                    dataMap.set(uid, uiData);
                 }
-            } catch (e) { 
-                console.error("Error reading gryphline list", e)
+            } catch (e) {
+                console.error("Error reading gryphline list", e);
             }
         }
     }
-}
+};
 
 const changeCurrent = async (uid) => {
-    config.current = uid
-    await config.save()
-}
+    config.current = uid;
+    await config.save();
+};
 
-ipcMain.handle('FETCH_DATA', async () => {
+ipcMain.handle("FETCH_DATA", async () => {
     try {
-        await fetchData()
-        return { dataMap, current: config.current }
+        await fetchData();
+        return { dataMap, current: config.current };
     } catch (e) {
-        sendMsg(e.message || e, 'ERROR')
-        console.error(e)
+        sendMsg(e.message || e, "ERROR");
+        console.error(e);
     }
-})
+});
 
-ipcMain.handle('I18N_DATA', () => {
-    return i18n.data
-})
+ipcMain.handle("I18N_DATA", () => {
+    return i18n.data;
+});
 
-ipcMain.handle('LANG_MAP', () => {
-    return langMap
-})
+ipcMain.handle("LANG_MAP", () => {
+    return langMap;
+});
 
-ipcMain.handle('READ_DATA', async () => {
-    await readData()
-    return { dataMap, current: config.current }
-})
+ipcMain.handle("READ_DATA", async () => {
+    await readData();
+    return { dataMap, current: config.current };
+});
 
-ipcMain.handle('CHANGE_UID', (event, uid) => { changeCurrent(uid) })
-ipcMain.handle('GET_CONFIG', () => config.value())
-ipcMain.handle('SAVE_CONFIG', (event, [key, value]) => { config[key] = value; config.save() })
-ipcMain.handle('NOTIFY_LANG_CHANGE', () => {
+ipcMain.handle("CHANGE_UID", (event, uid) => {
+    changeCurrent(uid);
+});
+ipcMain.handle("GET_CONFIG", () => config.value());
+ipcMain.handle("SAVE_CONFIG", (event, [key, value]) => {
+    config[key] = value;
+    config.save();
+});
+ipcMain.handle("NOTIFY_LANG_CHANGE", () => {
     // Broadcast language change to all renderer processes
-    sendMsg('', 'LANG_CHANGED')
-})
-ipcMain.handle('OPEN_CACHE_FOLDER', () => { shell.openPath(userDataPath) })
+    sendMsg("", "LANG_CHANGED");
+});
+ipcMain.handle("OPEN_CACHE_FOLDER", () => {
+    shell.openPath(userDataPath);
+});
 
 // Delete or restore data
 const deleteData = async (uid, action) => {
-    const data = dataMap.get(uid)
-    if (!data) return
-    
-    if (action === 'delete') {
-        data.deleted = true
-    } else if (action === 'restore') {
-        delete data.deleted
+    const data = dataMap.get(uid);
+    if (!data) return;
+
+    if (action === "delete") {
+        data.deleted = true;
+    } else if (action === "restore") {
+        delete data.deleted;
     }
-    
-    await saveData(data)
-}
+
+    await saveData(data);
+};
 
 // Get the latest URL from game logs
 const getUrl = async () => {
-    const allInfos = await extractEfWebview()
-    if (!allInfos || allInfos.length === 0) return null
-    
-    const info = allInfos[0]
-    return `${info.apiDomain}/api/record/char?token=${info.token}&lang=${info.lang}&server_id=${info.serverId}`
-}
+    const allInfos = await extractEfWebview();
+    if (!allInfos || allInfos.length === 0) return null;
+
+    const info = allInfos[0];
+    return `${info.apiDomain}/api/record/char?token=${info.token}&lang=${info.lang}&server_id=${info.serverId}`;
+};
 
 // Exports
-exports.getData = () => ({ dataMap, current: config.current })
-exports.deleteData = deleteData
-exports.getUrl = getUrl
+exports.getData = () => ({ dataMap, current: config.current });
+exports.deleteData = deleteData;
+exports.getUrl = getUrl;
