@@ -398,6 +398,9 @@ const fetchWeaponPools = async ({ lang, token, serverId }) => {
     url.searchParams.append("lang", lang);
     url.searchParams.append("token", token);
     url.searchParams.append("server_id", serverId);
+
+    console.log(`[fetchWeaponPools] Fetching: ${url.toString()}`);
+
     const response = await fetch(url.toString());
     if (!response.ok) throw new Error(`API error: ${response.status}`);
     return await response.json();
@@ -410,6 +413,8 @@ const fetchWeaponRecord = async ({ token, lang, serverId, poolId, seqId }) => {
     url.searchParams.append("server_id", serverId);
     if (poolId) url.searchParams.append("pool_id", poolId);
     if (seqId) url.searchParams.append("seq_id", seqId);
+
+    console.log(`[fetchWeaponRecord] Fetching: ${url.toString()}`);
 
     const response = await fetch(url.toString());
     if (!response.ok) throw new Error(`API error: ${response.status}`);
@@ -662,92 +667,47 @@ const getAllRecord = async (
     return { characterList, weaponList };
 };
 
-const fetchData = async () => {
-    await readData(); // Load existing local data
-
-    const allInfos = await extractEfWebview();
+const fetchData = async (manualInfo) => {
+    await readData();
+    const allInfos = manualInfo ? [manualInfo] : await extractEfWebview();
     if (!allInfos) return;
 
+    let firstUid = null;
     for (const info of allInfos) {
         const { token, lang, serverId, host, apiDomain: currentApiDomain } =
             info;
-
-        // Update global apiDomain for this fetch iteration
         apiDomain = currentApiDomain;
 
-        // Keep standard Global UID format as EF_serverId, only prefix CN server
-        let uid = `EF_${serverId}`;
-        if (host.includes("hypergryph")) {
-            uid = `EF_CN_${serverId}`;
+        // Use passed-in uid if available, otherwise generate one
+        let uid = info.uid || `EF_${serverId}`;
+        if (!info.uid) {
+            if (host && host.includes("hypergryph")) {
+                uid = `EF_CN_${serverId}`;
+            } else if (!host && currentApiDomain.includes("hypergryph")) {
+                uid = `EF_CN_${serverId}`;
+            }
+            // Add roleId if available to prevent collision
+            if (info.roleId) uid += `_${info.roleId}`;
         }
+
+        if (!firstUid) firstUid = uid;
 
         sendMsg(`Processing account: ${uid}`);
 
-        // Incremental update optimization: prepare existing seqIds
         const charSeqIds = new Set();
         const wepSeqIds = new Set();
-        const existingSeqIds = new Set(); // For compatibility with existing logic if needed
-
         let fileName = `endfield-list-${uid}.json`;
         try {
             const loaded = await readJSON(userDataPath, fileName);
             if (loaded) {
-                const charList = loaded.characterList || [];
-                const wepList = loaded.weaponList || [];
-                charList.forEach((i) => {
-                    charSeqIds.add(String(i.seqId));
-                    existingSeqIds.add(String(i.seqId));
-                });
-                wepList.forEach((i) => {
-                    wepSeqIds.add(String(i.seqId));
-                    existingSeqIds.add(String(i.seqId));
-                });
-
-                if (loaded.list) {
-                    loaded.list.forEach((i) => {
-                        const sid = String(i.seqId);
-                        existingSeqIds.add(sid);
-                        if (i.charId) charSeqIds.add(sid);
-                        else wepSeqIds.add(sid);
-                    });
-                }
-            }
-        } catch {}
-
-        // Detect Gaps in sequence IDs
-        let minCharGap = 0;
-        let minWepGap = 0;
-
-        if (config.fetchFullHistory) {
-            sendMsg(
-                "Full history fetch enabled in settings. Filling gaps mode activated.",
-            );
-            // Using 0 as minGap with config.fetchFullHistory = true is handled by checking config later,
-            // but the loops currently use (sidNum < minGap || minGap === 0) to stop.
-            // So if fetchFullHistory is true, we should set minGap to -1 to NEVER stop.
-            minCharGap = -1;
-            minWepGap = -1;
-        } else {
-            const getMinGap = (idSet) => {
-                const sortedIds = Array.from(idSet).map((id) => Number(id))
-                    .sort((a, b) => a - b);
-                for (let i = 0; i < sortedIds.length - 1; i++) {
-                    if (sortedIds[i + 1] - sortedIds[i] > 1) {
-                        return sortedIds[i]; // The gap is above this ID
-                    }
-                }
-                return 0;
-            };
-
-            minCharGap = getMinGap(charSeqIds);
-            minWepGap = getMinGap(wepSeqIds);
-
-            if (minCharGap > 0 || minWepGap > 0) {
-                sendMsg(
-                    "Gaps detected in local data. Filling gaps mode activated.",
+                (loaded.characterList || []).forEach((i) =>
+                    charSeqIds.add(String(i.seqId))
+                );
+                (loaded.weaponList || []).forEach((i) =>
+                    wepSeqIds.add(String(i.seqId))
                 );
             }
-        }
+        } catch {}
 
         const { characterList, weaponList } = await getAllRecord({
             token,
@@ -755,69 +715,18 @@ const fetchData = async () => {
             serverId,
             charSeqIds,
             wepSeqIds,
-            minCharGap,
-            minWepGap,
+            minCharGap: config.fetchFullHistory ? -1 : 0,
+            minWepGap: config.fetchFullHistory ? -1 : 0,
         });
-        const data = { uid, rawList: [] }; // Legacy structure not used but defined
 
-        // Save raw Gryphline data
         await saveGryphlineData(uid, { characterList, weaponList, lang });
-
-        // Read back updated data
-        fileName = `endfield-list-${uid}.json`;
-        try {
-            const loaded = await readJSON(userDataPath, fileName);
-            if (loaded) { // loaded can be object with characterList/weaponList
-                let charList = loaded.characterList || [];
-                let wepList = loaded.weaponList || [];
-
-                // Fallback for immediate processing if load fails to find new keys immediately (unlikely)
-                if (loaded.list) {
-                    charList = loaded.list.filter((i) => i.charId);
-                    wepList = loaded.list.filter((i) => i.weaponId);
-                }
-
-                const processedResult = processGryphlineList({
-                    characterList: charList,
-                    weaponList: wepList,
-                });
-
-                const uiData = {
-                    uid: uid,
-                    time: loaded.info.export_timestamp * 1000,
-                    result: processedResult,
-                    typeMap: new Map(),
-                    // rawList: ... // not strictly needed for UI if result is populated
-                };
-
-                uiData.typeMap.set(
-                    "standard",
-                    i18n.parse(i18n.gacha.type.standard),
-                );
-                uiData.typeMap.set(
-                    "special",
-                    i18n.parse(i18n.gacha.type.special),
-                );
-                uiData.typeMap.set(
-                    "weapon",
-                    i18n.parse(i18n.gacha.type.weapon),
-                );
-                uiData.typeMap.set(
-                    "beginner",
-                    i18n.parse(i18n.gacha.type.beginner),
-                );
-                uiData.typeMap.set(
-                    "urgent",
-                    i18n.parse(i18n.gacha.type.urgent),
-                );
-
-                dataMap.set(uid, uiData);
-                await changeCurrent(uid);
-            }
-        } catch (e) {
-            console.error("Failed to process saved gryphline data", e);
-        }
     }
+    await readData();
+    if (firstUid) {
+        config.current = firstUid;
+        await config.save();
+    }
+    return firstUid;
 };
 
 const readData = async () => {
@@ -888,13 +797,18 @@ const changeCurrent = async (uid) => {
     await config.save();
 };
 
-ipcMain.handle("FETCH_DATA", async () => {
+ipcMain.handle("FETCH_DATA", async (event, arg) => {
     try {
-        await fetchData();
+        if (typeof arg === "object" && arg.token) {
+            await fetchData(arg);
+        } else {
+            await fetchData();
+        }
         return { dataMap, current: config.current };
     } catch (e) {
         sendMsg(e.message || e, "ERROR");
         console.error(e);
+        return false;
     }
 });
 

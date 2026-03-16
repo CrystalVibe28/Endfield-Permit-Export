@@ -65,23 +65,29 @@
             >{{ ui.button.directUpdate }}</el-button
           >
         </el-tooltip>
+        <el-button
+          @click="state.showLoginDlg = true"
+          plain
+          type="info"
+          icon="user"
+          class="focus:outline-none"
+        >{{ ui.button.login }}</el-button>
       </div>
       <div class="flex gap-2 items-center">
         <el-select
           v-if="
             state.status !== 'loading' &&
-            dataMap &&
-            (dataMap.size > 1 || (dataMap.size === 1 && state.current === 0))
+            uidList.length > 0
           "
-          class="!w-44"
+          class="!w-64"
           @change="changeCurrent"
-          v-model="uidSelectText"
+          v-model="state.current"
         >
           <el-option
-            v-for="item of dataMap"
-            :key="item[0]"
-            :label="maskUid(item[0])"
-            :value="item[0]"
+            v-for="item of uidList"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
           >
           </el-option>
         </el-select>
@@ -132,7 +138,7 @@
       >
     </p>
 
-    <!-- Dialogs moved here as well -->
+    <!-- Dialogs -->
     <Setting
       v-if="state.showSetting"
       :i18n="i18n"
@@ -197,6 +203,45 @@
         </div>
       </template>
     </el-dialog>
+
+    <el-dialog
+      :title="ui.loginDialog.title"
+      v-model="state.showLoginDlg"
+      width="90%"
+      class="max-w-md"
+    >
+      <div class="flex flex-col gap-4">
+        <el-select v-model="state.loginProvider" :placeholder="ui.loginDialog.server">
+          <el-option label="官服 (Hypergryph)" value="hypergryph"></el-option>
+          <el-option label="国际服 (Gryphline)" value="gryphline"></el-option>
+        </el-select>
+        
+        <el-button 
+          v-if="!state.roles.length"
+          type="primary" 
+          @click="handleWebLogin" 
+          :loading="state.isLoggingIn"
+          class="w-full"
+        >
+          {{ ui.loginDialog.hint }}
+        </el-button>
+
+        <div v-if="state.roles.length" class="space-y-3">
+          <p class="text-sm font-bold text-gray-700">{{ ui.loginDialog.roles }}</p>
+          <div class="grid grid-cols-1 gap-2">
+            <el-button 
+              v-for="role in state.roles" 
+              :key="role.roleId"
+              @click="selectRole(role)"
+              plain
+              class="!ml-0"
+            >
+              {{ role.nickName }} ({{ role.roleId }})
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -207,6 +252,7 @@ import Setting from "./Setting.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 
 const props = defineProps(['modelValue']);
+
 const emit = defineEmits(['update:modelValue', 'data-updated', 'changeLang']);
 
 const i18n = inject("i18n");
@@ -219,9 +265,17 @@ const state = reactive({
   showSetting: false,
   showUrlDlg: false,
   showCacheCleanDlg: false,
+  showLoginDlg: false,
   urlInput: "",
   authkeyTimeout: false,
+  isLoggingIn: false,
+  loginProvider: 'hypergryph',
+  roles: [],
+  capturedToken: null,
+  oauthToken: null,
+  linkedUsers: []
 });
+
 
 const ui = computed(() => i18n?.value?.ui);
 
@@ -233,6 +287,29 @@ const dataMap = computed(() => {
     }
   }
   return result;
+});
+
+const uidList = computed(() => {
+  const list = [];
+  if (state.dataMap.size === 0 && state.current === 0) {
+    list.push({ label: ui.value?.select?.newAccount || "New Account", value: 0 });
+  }
+
+  // Files from local scan
+  for (let [uid, data] of dataMap.value) {
+    const linked = state.linkedUsers.find(u => u.uid === uid);
+    const label = linked ? `${linked.nickName}(${linked.roleId})` : maskUid(uid);
+    list.push({ label, value: uid });
+  }
+
+  // Linked accounts that might not have files yet
+  for (let user of state.linkedUsers) {
+    if (!dataMap.value.has(user.uid)) {
+       list.push({ label: `${user.nickName}(${user.roleId})`, value: user.uid });
+    }
+  }
+
+  return list;
 });
 
 const hasData = computed(() => {
@@ -252,14 +329,6 @@ const dataInfo = computed(() => {
     result.push({ uid, time: data.time, deleted: data.deleted });
   }
   return result;
-});
-
-const uidSelectText = computed(() => {
-  if (state.current === 0) {
-    return ui.value?.select?.newAccount || "New Account";
-  } else {
-    return state.current;
-  }
 });
 
 const cacheCleanTextList = computed(() => {
@@ -292,6 +361,34 @@ const allowClick = () => {
 };
 
 const fetchData = async (url) => {
+  const isLinked = state.linkedUsers.find(u => u.uid === state.current);
+  if (isLinked) {
+    state.status = "loading";
+    state.log = "嘗試自動獲取最新 Token...";
+    try {
+      // 1. Try to get a totally fresh token from cookies (Auto Refresh)
+      const freshToken = await ipcRenderer.invoke('AUTO_GET_TOKEN', isLinked.provider);
+      if (freshToken) {
+         return await selectRole({ ...isLinked, capturedToken: freshToken }, true);
+      }
+      
+      // 2. Fallback: Try the stored capturedToken if it exists
+      if (isLinked.capturedToken) {
+        state.log = "使用存儲的 Token 嘗試更新...";
+        return await selectRole(isLinked, true);
+      }
+    } catch (e) {
+      console.warn("Auto refresh fallback failure", e);
+    }
+    
+    ElMessage.warning("自動獲取 Token 失敗，請重新登入");
+    state.showLoginDlg = true;
+    state.status = "init";
+    state.log = "";
+    return;
+  }
+
+
   state.log = "";
   state.status = "loading";
   const data = await ipcRenderer.invoke("FETCH_DATA", url);
@@ -305,6 +402,153 @@ const fetchData = async (url) => {
   }
 };
 
+const handleWebLogin = async () => {
+  state.isLoggingIn = true;
+  try {
+    const token = await ipcRenderer.invoke('OPEN_LOGIN_WINDOW', state.loginProvider);
+    
+    if (token) {
+      state.capturedToken = token;
+      const oauthToken = await ipcRenderer.invoke('GET_OAUTH_TOKEN', { 
+        loginToken: token, 
+        provider: state.loginProvider 
+      });
+
+      if (oauthToken) {
+        state.oauthToken = oauthToken; // Store temporarily
+        const bindings = await ipcRenderer.invoke('FETCH_UID_BY_TOKEN', { 
+          oauthToken, 
+          provider: state.loginProvider 
+        });
+
+        if (bindings && bindings.length > 0) {
+          // Store hashUid (b.uid) for the next step
+          state.roles = bindings.flatMap(b => b.roles.map(r => ({ ...r, hashUid: b.uid, provider: state.loginProvider })));
+          if (state.roles.length === 1) {
+            await selectRole(state.roles[0]);
+          }
+        } else {
+          ElMessage.error("未找到角色信息");
+        }
+      } else {
+        ElMessage.error("授權失敗 (請重試)");
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    ElMessage.error("登入程序發生錯誤");
+  } finally {
+    state.isLoggingIn = false;
+  }
+};
+
+const selectRole = async (role, isAuto = false) => {
+  state.showLoginDlg = false;
+  state.status = "loading";
+  state.log = isAuto ? "正在更新數據..." : "正在抓取資料...";
+  
+  const provider = role.provider || state.loginProvider;
+  const apiDomain = provider === 'gryphline' 
+    ? 'https://ef-webview.gryphline.com' 
+    : 'https://ef-webview.hypergryph.com';
+
+  // Token Chain: loginToken (capturedToken) -> oauthToken -> u8Token
+  let loginToken = role.capturedToken || state.capturedToken;
+  
+  // If we are passing a fresh capturedToken (auto-refresh), 
+  // we must ignore existing tokens and restart the chain.
+  let oauthToken = role.capturedToken ? null : (role.oauthToken || state.oauthToken);
+  let hashUid = role.hashUid || role.uid; // b.uid (hash)
+  let u8Token = role.capturedToken ? null : role.token; // The final token for Gacha API
+
+
+  try {
+    // 1. If we only have loginToken, get oauthToken
+    if (loginToken && !oauthToken) {
+      state.log = "正在換取 OAuth Token...";
+      oauthToken = await ipcRenderer.invoke('GET_OAUTH_TOKEN', { 
+        loginToken, 
+        provider 
+      });
+    }
+
+    // 2. If we have oauthToken, ensure we have hashUid and fetch u8Token
+    // If it's a new login, bindings were fetched in handleWebLogin. 
+    // If it's auto-refresh, hashUid should be in the 'role' object (from linkedUsers).
+    if (oauthToken && hashUid) {
+      state.log = "正在獲取 u8 token...";
+      const freshU8 = await ipcRenderer.invoke('GET_U8_TOKEN_BY_UID', {
+        uid: hashUid,
+        oauthToken,
+        provider
+      });
+      if (freshU8) u8Token = freshU8;
+    }
+
+    if (!u8Token) {
+      state.status = "failed";
+      ElMessage.error("獲取 Token 失敗，請重試");
+      return;
+    }
+
+    const appUid = String(role.roleId); // roleId is the numeric game UID
+
+    const data = await ipcRenderer.invoke("FETCH_DATA", {
+      token: u8Token,
+      serverId: role.serverId,
+      roleId: role.roleId,
+      lang: i18n.value?.lang || 'zh-cn',
+      apiDomain,
+      uid: appUid 
+    });
+
+    if (data) {
+      state.dataMap = data.dataMap;
+      state.current = appUid;
+      state.status = "loaded";
+      
+      // Update/Save to linkedUsers
+      const users = JSON.parse(JSON.stringify(state.linkedUsers));
+      const newUser = {
+          uid: appUid,
+          gameUid: role.uid || role.hashUid, 
+          roleId: role.roleId, 
+          nickName: role.nickName,
+          serverId: role.serverId,
+          serverName: role.serverName,
+          provider: provider,
+          token: u8Token, 
+          hashUid: hashUid,
+          capturedToken: loginToken // Store the long-lived login token
+      };
+      const idx = users.findIndex(u => u.uid === appUid);
+      if (idx !== -1) users[idx] = newUser;
+      else users.push(newUser);
+      state.linkedUsers = users;
+      await ipcRenderer.invoke("SAVE_CONFIG", ["users", JSON.parse(JSON.stringify(users))]);
+
+      if (!isAuto) {
+        state.roles = [];
+        state.capturedToken = null;
+        state.oauthToken = null;
+      }
+
+      emit('data-updated', { dataMap: state.dataMap, current: state.current });
+      if (!isAuto) ElMessage.success("數據抓取成功");
+    } else {
+      state.status = "failed";
+      if (!isAuto) ElMessage.error("數據抓取失敗");
+    }
+  } catch (e) {
+    console.error("selectRole error:", e);
+    state.status = "failed";
+    ElMessage.error("處理角色資訊時發生錯誤");
+  }
+};
+
+
+
+
 const readData = async () => {
   const data = await ipcRenderer.invoke("READ_DATA");
   if (data) {
@@ -315,6 +559,8 @@ const readData = async () => {
     }
     emit('data-updated', { dataMap: state.dataMap, current: state.current });
   }
+  const config = await ipcRenderer.invoke("GET_CONFIG");
+  state.linkedUsers = config.users || [];
 };
 
 const changeCurrent = async (uid) => {
@@ -385,7 +631,11 @@ const copyUrl = async () => {
   else ElMessage.error(i18n.value.log.url.notFound);
 };
 
-const maskUid = (uid) => `${uid}`.replace(/(.{3})(.+)(.{3})$/, "$1***$3");
+const maskUid = (uid) => {
+  if (!uid) return "";
+  if (typeof uid !== 'string') uid = String(uid);
+  return uid.replace(/(.{3})(.+)(.{3})$/, "$1***$3");
+};
 
 onMounted(async () => {
   await readData();
@@ -395,5 +645,18 @@ onMounted(async () => {
     state.status = "updated";
   });
   ipcRenderer.on("AUTHKEY_TIMEOUT", (event, message) => state.authkeyTimeout = message);
+
+  // Auto Refresh on startup
+  for (let provider of ['hypergryph', 'gryphline']) {
+    const freshToken = await ipcRenderer.invoke('AUTO_GET_TOKEN', provider);
+    if (freshToken) {
+       console.log(`Auto Refreshed Token for ${provider}`);
+       // Update capturedToken for accounts using this provider if they are current
+       const activeAccount = state.linkedUsers.find(u => u.uid === state.current && u.provider === provider);
+       if (activeAccount) {
+         state.capturedToken = freshToken;
+       }
+    }
+  }
 });
 </script>
