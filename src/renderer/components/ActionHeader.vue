@@ -532,6 +532,8 @@ const selectRole = async (role, isAuto = false) => {
       state.linkedUsers = users;
       await ipcRenderer.invoke("SAVE_CONFIG", ["users", JSON.parse(JSON.stringify(users))]);
 
+      await ipcRenderer.invoke("CLEAR_LOGIN_SESSION");
+
       if (!isAuto) {
         state.roles = [];
         state.capturedToken = null;

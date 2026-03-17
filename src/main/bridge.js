@@ -201,6 +201,9 @@ ipcMain.handle("OPEN_LOGIN_WINDOW", async (event, provider) => {
   const pollUrlPattern = provider === "gryphline"
     ? "*://web-api.gryphline.com/cookie_store/account_token*"
     : "*://web-api.hypergryph.com/account/info/hg*";
+  const pollUrl = provider === "gryphline"
+    ? "https://web-api.gryphline.com/cookie_store/account_token"
+    : "https://web-api.hypergryph.com/account/info/hg";
 
   let loginWin = new BrowserWindow({
     width: 500,
@@ -235,6 +238,7 @@ ipcMain.handle("OPEN_LOGIN_WINDOW", async (event, provider) => {
 
       handled = true;
       ses.webRequest.onCompleted({ urls: [pollUrlPattern] }, null);
+      
       if (loginWin) {
         loginWin.close();
         loginWin = null;
@@ -246,6 +250,25 @@ ipcMain.handle("OPEN_LOGIN_WINDOW", async (event, provider) => {
       if (token) finish(token);
     };
     ipcMain.on("HG_LOGIN_SUCCESS", onHgLoginSuccess);
+
+    const pollInterval = setInterval(async () => {
+      if (handled || !loginWin || loginWin.isDestroyed()) return;
+      try {
+        const token = await loginWin.webContents.executeJavaScript(`
+          (function() {
+            return fetch("${pollUrl}", { credentials: "include" })
+              .then(res => res.json())
+              .then(data => {
+                if (data.code === 0 && data.data && data.data.content) return data.data.content;
+                if (data.status === 0 && data.data && data.data.token) return data.data.token;
+                return null;
+              })
+              .catch(() => null);
+          })()
+        `);
+        if (token) finish(token);
+      } catch (e) {}
+    }, 2000);
 
     ses.webRequest.onCompleted({ urls: [pollUrlPattern] }, async (details) => {
       if (handled || details.statusCode !== 200) return;
@@ -266,6 +289,7 @@ ipcMain.handle("OPEN_LOGIN_WINDOW", async (event, provider) => {
     });
 
     loginWin.on("closed", () => {
+      clearInterval(pollInterval);
       ipcMain.removeListener("HG_LOGIN_SUCCESS", onHgLoginSuccess);
       if (!handled) {
         handled = true;
@@ -318,4 +342,12 @@ ipcMain.handle("AUTO_GET_TOKEN", async (event, provider) => {
     if (!tempWin.isDestroyed()) tempWin.close();
     return null;
   }
+});
+
+ipcMain.handle("CLEAR_LOGIN_SESSION", async () => {
+  const { session } = require("electron");
+  const ses = session.fromPartition("persist:hg-login");
+  await ses.clearStorageData();
+  console.log("[Auth] Login session cleared.");
+  return true;
 });

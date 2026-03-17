@@ -3,8 +3,7 @@ const { ipcRenderer } = require("electron");
 let hasSent = false;
 
 function sendToken(token) {
-    if (hasSent || !token) return;
-    hasSent = true;
+    if (!token) return;
     ipcRenderer.send("HG_LOGIN_SUCCESS", token);
 }
 
@@ -68,7 +67,6 @@ const pollUrl = provider === "gryphline"
     : "https://web-api.hypergryph.com/account/info/hg";
 
 setInterval(() => {
-    if (hasSent) return;
     fetch(pollUrl, { credentials: "include" })
         .then((res) => res.json())
         .then((data) => {
@@ -77,4 +75,4 @@ setInterval(() => {
             if (token) sendToken(token);
         })
         .catch(() => {});
-}, 3000);
+}, 1000);
