@@ -12,7 +12,7 @@
         </el-select>
         <p class="text-gray-400 text-xs m-1.5">{{text.languageHint}}</p>
       </el-form-item>
-      <el-form-item :label="text.logType">
+      <!-- <el-form-item :label="text.logType">
         <el-radio-group @change="saveSetting" v-model.number="settingForm.logType">
           <el-radio-button :label="0">{{text.auto}}</el-radio-button>
           <el-radio-button :label="1">{{text.cnServer}}</el-radio-button>
@@ -30,7 +30,8 @@
           </el-input>
           <p class="text-red-500 text-xs m-1.5 font-bold">{{text.manualWarning}}</p>
         </div>
-      </el-form-item>
+      </el-form-item> -->
+
       <el-form-item :label="text.accountManage">
         <el-button type="primary" plain @click="state.showAccountDialog = true">{{text.accountManage}}</el-button>
         <p class="text-gray-400 text-xs m-1.5">{{text.accountManageHint}}</p>
@@ -133,7 +134,7 @@ const text = computed(() => props.i18n.ui.setting)
 const about = computed(() => props.i18n.ui.about)
 
 const saveSetting = async () => {
-  const keys = ['lang', 'logType', 'proxyMode', 'autoUpdate', 'fetchFullHistory', 'hideNovice', 'manualUrl']
+  const keys = ['lang', 'proxyMode', 'autoUpdate', 'manualUrl']
   for (let key of keys) {
     await ipcRenderer.invoke('SAVE_CONFIG', [key, settingForm[key]])
   }

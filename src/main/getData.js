@@ -28,126 +28,129 @@ const saveData = async (data) => {
     await saveJSON(`gacha-list-${data.uid}.json`, obj);
 };
 
-const extractEfWebview = async () => {
-    const homeDir = app.getPath("home");
-    let logPaths = [
-        path.join(
-            homeDir,
-            "AppData",
-            "LocalLow",
-            "Gryphline",
-            "Endfield",
-            "sdklogs",
-            "HGWebview.log",
-        ),
-        path.join(
-            homeDir,
-            "AppData",
-            "LocalLow",
-            "Hypergryph",
-            "Endfield",
-            "sdklogs",
-            "HGWebview.log",
-        ),
-    ];
 
-    if (config.logType === 3) {
-        if (!config.manualUrl) {
-            sendMsg("Manual URL not provided.");
-            return false;
-        }
-        try {
-            const parsed = new URL(config.manualUrl);
-            const token = parsed.searchParams.get("u8_token") ||
-                parsed.searchParams.get("token");
-            const lang = parsed.searchParams.get("lang");
-            const serverRaw = parsed.searchParams.get("server") ||
-                parsed.searchParams.get("server_id");
+// const extractEfWebview = async () => {
+//     const homeDir = app.getPath("home");
+//     let logPaths = [
+//         path.join(
+//             homeDir,
+//             "AppData",
+//             "LocalLow",
+//             "Gryphline",
+//             "Endfield",
+//             "sdklogs",
+//             "HGWebview.log",
+//         ),
+//         path.join(
+//             homeDir,
+//             "AppData",
+//             "LocalLow",
+//             "Hypergryph",
+//             "Endfield",
+//             "sdklogs",
+//             "HGWebview.log",
+//         ),
+//     ];
 
-            if (token && lang && serverRaw) {
-                return [{
-                    token,
-                    lang,
-                    serverId: serverRaw,
-                    host: parsed.host,
-                    apiDomain: `${parsed.protocol}//${parsed.host}`,
-                }];
-            } else {
-                sendMsg("Invalid Manual URL format.");
-                return false;
-            }
-        } catch (e) {
-            sendMsg("Error parsing Manual URL.");
-            return false;
-        }
-    }
+//     if (config.logType === 3) {
+//         if (!config.manualUrl) {
+//             sendMsg("Manual URL not provided.");
+//             return false;
+//         }
+//         try {
+//             const parsed = new URL(config.manualUrl);
+//             const token = parsed.searchParams.get("u8_token") ||
+//                 parsed.searchParams.get("token");
+//             const lang = parsed.searchParams.get("lang");
+//             const serverRaw = parsed.searchParams.get("server") ||
+//                 parsed.searchParams.get("server_id");
 
-    if (config.logType === 1) {
-        logPaths = [
-            path.join(
-                homeDir,
-                "AppData",
-                "LocalLow",
-                "Hypergryph",
-                "Endfield",
-                "sdklogs",
-                "HGWebview.log",
-            ),
-        ];
-    } else if (config.logType === 2) {
-        logPaths = [
-            path.join(
-                homeDir,
-                "AppData",
-                "LocalLow",
-                "Gryphline",
-                "Endfield",
-                "sdklogs",
-                "HGWebview.log",
-            ),
-        ];
-    }
+//             if (token && lang && serverRaw) {
+//                 return [{
+//                     token,
+//                     lang,
+//                     serverId: serverRaw,
+//                     host: parsed.host,
+//                     apiDomain: `${parsed.protocol}//${parsed.host}`,
+//                 }];
+//             } else {
+//                 sendMsg("Invalid Manual URL format.");
+//                 return false;
+//             }
+//         } catch (e) {
+//             sendMsg("Error parsing Manual URL.");
+//             return false;
+//         }
+//     }
 
-    const allInfos = [];
+//     if (config.logType === 1) {
+//         logPaths = [
+//             path.join(
+//                 homeDir,
+//                 "AppData",
+//                 "LocalLow",
+//                 "Hypergryph",
+//                 "Endfield",
+//                 "sdklogs",
+//                 "HGWebview.log",
+//             ),
+//         ];
+//     } else if (config.logType === 2) {
+//         logPaths = [
+//             path.join(
+//                 homeDir,
+//                 "AppData",
+//                 "LocalLow",
+//                 "Gryphline",
+//                 "Endfield",
+//                 "sdklogs",
+//                 "HGWebview.log",
+//             ),
+//         ];
+//     }
 
-    for (const logPath of logPaths) {
-        try {
-            if (await fs.pathExists(logPath)) {
-                const content = await fs.readFile(logPath, "utf-8");
-                const regex =
-                    /https:\/\/ef-webview\.(gryphline|hypergryph)\.com[^\s"'<>]*[&\?](u8_token|token)=[^&\s"'<>]+[^\s"'<>]*/g;
-                const matches = content.match(regex);
+//     const allInfos = [];
 
-                if (matches && matches.length > 0) {
-                    const latestUrl = matches[matches.length - 1];
-                    const parsed = new URL(latestUrl);
-                    const token = parsed.searchParams.get("u8_token") ||
-                        parsed.searchParams.get("token");
-                    const lang = parsed.searchParams.get("lang");
-                    const serverRaw = parsed.searchParams.get("server") ||
-                        parsed.searchParams.get("server_id");
+//     for (const logPath of logPaths) {
+//         try {
+//             if (await fs.pathExists(logPath)) {
+//                 const content = await fs.readFile(logPath, "utf-8");
+//                 const regex =
+//                     /https:\/\/ef-webview\.(gryphline|hypergryph)\.com[^\s"'<>]*[&\?](u8_token|token)=[^&\s"'<>]+[^\s"'<>]*/g;
+//                 const matches = content.match(regex);
 
-                    if (token && lang && serverRaw) {
-                        allInfos.push({
-                            token,
-                            lang,
-                            serverId: serverRaw,
-                            host: parsed.host,
-                            apiDomain: `${parsed.protocol}//${parsed.host}`,
-                        });
-                    }
-                }
-            }
-        } catch (e) {}
-    }
+//                 if (matches && matches.length > 0) {
+//                     const latestUrl = matches[matches.length - 1];
+//                     const parsed = new URL(latestUrl);
+//                     const token = parsed.searchParams.get("u8_token") ||
+//                         parsed.searchParams.get("token");
+//                     const lang = parsed.searchParams.get("lang");
+//                     const serverRaw = parsed.searchParams.get("server") ||
+//                         parsed.searchParams.get("server_id");
 
-    if (allInfos.length === 0) {
-        sendMsg("No valid log files or URLs found.");
-        return false;
-    }
+//                     if (token && lang && serverRaw) {
+//                         allInfos.push({
+//                             token,
+//                             lang,
+//                             serverId: serverRaw,
+//                             host: parsed.host,
+//                             apiDomain: `${parsed.protocol}//${parsed.host}`,
+//                         });
+//                     }
+//                 }
+//             }
+//         } catch (e) {}
+//     }
 
-    return allInfos;
-};
+//     if (allInfos.length === 0) {
+//         sendMsg("No valid log files or URLs found.");
+//         return false;
+//     }
+
+//     return allInfos;
+// };
+
+
 
 const POOL_TYPES = [
     "E_CharacterGachaPoolType_Standard",
@@ -669,7 +672,7 @@ const getAllRecord = async (
 
 const fetchData = async (manualInfo) => {
     await readData();
-    const allInfos = manualInfo ? [manualInfo] : await extractEfWebview();
+    const allInfos = manualInfo ? [manualInfo] : null; // await extractEfWebview();
     if (!allInfos) return;
 
     let firstUid = null;

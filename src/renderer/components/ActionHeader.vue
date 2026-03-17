@@ -52,7 +52,7 @@
           >
         </el-tooltip>
         <el-tooltip
-          v-if="hasData && state.status !== 'loading'"
+          v-if="state.status !== 'loading'"
           :content="ui.hint.newAccount"
           placement="bottom"
         >
@@ -64,6 +64,7 @@
             class="focus:outline-none"
           >{{ ui.button.login }}</el-button>
         </el-tooltip>
+
       </div>
       <div class="flex gap-2 items-center">
         <el-select
@@ -353,11 +354,16 @@ const hint = computed(() => {
 });
 
 const allowClick = () => {
+  const isLinked = state.linkedUsers.find(u => u.uid === state.current);
+  if (!isLinked) return false;
+  
   const data = state.dataMap.get(state.current);
   if (!data) return true;
   if (Date.now() - data.time < 1000 * 10) return false;
   return true;
 };
+
+
 
 const fetchData = async (url) => {
   const isLinked = state.linkedUsers.find(u => u.uid === state.current);
