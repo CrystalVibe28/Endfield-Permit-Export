@@ -40,7 +40,7 @@ const addRawSheet = (workbook, data) => {
       arr.push(log.item_id)
       arr.push(log.item_type)
       arr.push(data.lang)
-      arr.push(log.name)
+      arr.push(i18n.wpn?.[log.item_id] || i18n.char?.[log.item_id] || log.name)
       arr.push(log.rank_type)
       arr.push(log.time)
       arr.push(data.uid)
@@ -98,7 +98,7 @@ const start = async () => {
       total += 1
       pity += 1
       arr.push(log.time)
-      arr.push(log.name)
+      arr.push(i18n.wpn?.[log.item_id] || i18n.char?.[log.item_id] || log.name)
       arr.push(log.item_type)
       arr.push(log.rank_type)
       arr.push(total)

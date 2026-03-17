@@ -105,15 +105,17 @@ const langMap = new Map([
   ['zh-tw', '繁體中文'],
   ['de-de', 'Deutsch'],
   ['en-us', 'English'],
-  ['es-es', 'Español'],
+  ['es-mx', 'Español'],
   ['fr-fr', 'Français'],
   ['id-id', 'Indonesia'],
+  ['it-it', 'Italiano'],
   ['ja-jp', '日本語'],
   ['ko-kr', '한국어'],
-  ['pt-pt', 'Português'],
+  ['pt-br', 'Português'],
   ['ru-ru', 'Pусский'],
   ['th-th', 'ภาษาไทย'],
   ['vi-vn', 'Tiếng Việt']
+
 ])
 
 const localeMap = new Map([
@@ -121,12 +123,13 @@ const localeMap = new Map([
   ['zh-tw', ['zh-TW']],
   ['de-de', ['de-AT', 'de-CH', 'de-DE', 'de']],
   ['en-us', ['en-AU', 'en-CA', 'en-GB', 'en-NZ', 'en-US', 'en-ZA', 'en']],
-  ['es-es', ['es', 'es-419']],
+  ['es-mx', ['es', 'es-419', 'es-ES', 'es-MX']],
   ['fr-fr', ['fr-CA', 'fr-CH', 'fr-FR', 'fr']],
   ['id-id', ['id']],
+  ['it-it', ['it', 'it-IT', 'it-CH']],
   ['ja-jp', ['ja']],
   ['ko-kr', ['ko']],
-  ['pt-pt', ['pt-BR', 'pt-PT', 'pt']],
+  ['pt-br', ['pt-BR', 'pt-PT', 'pt']],
   ['ru-ru', ['ru']],
   ['th-th', ['th']],
   ['vi-vn', ['vi']]

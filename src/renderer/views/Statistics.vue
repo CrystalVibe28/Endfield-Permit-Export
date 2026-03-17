@@ -253,9 +253,9 @@
                         v-if="getCharacterIcon(record)"
                         :src="getCharacterIcon(record)"
                         class="w-full h-full object-cover"
-                        :alt="record.name"
+                        :alt="i18n?.wpn?.[record.item_id] || i18n?.char?.[record.item_id] || record.name"
                       />
-                      <span v-else>{{ record.name[0] }}</span>
+                      <span v-else>{{ (i18n?.wpn?.[record.item_id] || i18n?.char?.[record.item_id] || record.name)[0] }}</span>
                     </div>
                     <!-- Status Tags (Temporarily commented out) -->
                     <!-- <div
@@ -274,7 +274,7 @@
 
                   <div class="flex-1 min-w-0">
                     <div class="flex justify-between text-xs mb-1.5 px-0.5">
-                      <span class="text-gray-700 font-bold">{{ record.name }}</span>
+                      <span class="text-gray-700 font-bold">{{ i18n?.wpn?.[record.item_id] || i18n?.char?.[record.item_id] || record.name }}</span>
                       <span class="text-gray-400 font-mono text-[10px] mt-0.5">{{ formatDate(record.time) }}</span>
                     </div>
                     <div

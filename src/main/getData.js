@@ -19,6 +19,30 @@ const fetch = require("electron-fetch").default;
 
 const dataMap = new Map();
 let apiDomain = "https://ef-webview.gryphline.com";
+const SUPPORTED_LANGS = [
+    "zh-cn", "en-us", "ja-jp", "ko-kr", "zh-tw", "es-mx", "pt-br", 
+    "fr-fr", "de-de", "ru-ru", "it-it", "id-id", "th-th", "vi-vn"
+];
+
+const ensureSupportedLang = (lang) => {
+    if (!lang) return config.lang;
+    const l = lang.toLowerCase();
+    if (SUPPORTED_LANGS.includes(l)) return l;
+    if (l.startsWith("zh")) return l.includes("tw") || l.includes("hk") ? "zh-tw" : "zh-cn";
+    if (l.startsWith("en")) return "en-us";
+    if (l.startsWith("ja")) return "ja-jp";
+    if (l.startsWith("ko")) return "ko-kr";
+    if (l.startsWith("es")) return "es-mx";
+    if (l.startsWith("pt")) return "pt-br";
+    if (l.startsWith("fr")) return "fr-fr";
+    if (l.startsWith("de")) return "de-de";
+    if (l.startsWith("ru")) return "ru-ru";
+    if (l.startsWith("it")) return "it-it";
+    if (l.startsWith("id")) return "id-id";
+    if (l.startsWith("th")) return "th-th";
+    if (l.startsWith("vi")) return "vi-vn";
+    return "en-us";
+};
 
 const saveData = async (data) => {
     const obj = Object.assign({}, data);
@@ -304,8 +328,9 @@ const saveGryphlineData = async (
             uid,
             export_timestamp: Math.floor(Date.now() / 1000),
             app_version: app.getVersion(),
-            lang: lang || config.lang,
+            lang: ensureSupportedLang(lang || config.lang),
         },
+
         characterList: [],
         weaponList: [],
     };
@@ -383,8 +408,9 @@ const saveGryphlineData = async (
 const fetchCharRecord = async ({ token, lang, serverId, poolType, seqId }) => {
     const url = new URL(`${apiDomain}/api/record/char`);
     url.searchParams.append("token", token);
-    url.searchParams.append("lang", lang);
+    url.searchParams.append("lang", ensureSupportedLang(lang));
     url.searchParams.append("server_id", serverId);
+
     url.searchParams.append("pool_type", poolType);
     if (seqId) url.searchParams.append("seq_id", seqId);
 
@@ -398,9 +424,10 @@ const fetchCharRecord = async ({ token, lang, serverId, poolType, seqId }) => {
 
 const fetchWeaponPools = async ({ lang, token, serverId }) => {
     const url = new URL(`${apiDomain}/api/record/weapon/pool`);
-    url.searchParams.append("lang", lang);
+    url.searchParams.append("lang", ensureSupportedLang(lang));
     url.searchParams.append("token", token);
     url.searchParams.append("server_id", serverId);
+
 
     console.log(`[fetchWeaponPools] Fetching: ${url.toString()}`);
 
@@ -412,8 +439,9 @@ const fetchWeaponPools = async ({ lang, token, serverId }) => {
 const fetchWeaponRecord = async ({ token, lang, serverId, poolId, seqId }) => {
     const url = new URL(`${apiDomain}/api/record/weapon`);
     url.searchParams.append("token", token);
-    url.searchParams.append("lang", lang);
+    url.searchParams.append("lang", ensureSupportedLang(lang));
     url.searchParams.append("server_id", serverId);
+
     if (poolId) url.searchParams.append("pool_id", poolId);
     if (seqId) url.searchParams.append("seq_id", seqId);
 

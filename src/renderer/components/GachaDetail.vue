@@ -30,7 +30,7 @@
     <span :title="`${item[2]}${item[3] === '400' ? '\n' + props.i18n.excel.wish2 : ''}`" :class="{wish2: item[3] === '400'}" class="cursor-help mr-1" :style="`color:${colorList[index]}`"
       v-for="(item, index) of detail.ssrPos" :key="item"
     >
-      {{item[0]}}[{{item[1]}}]
+      {{ props.i18n.wpn?.[item[4]] || props.i18n.char?.[item[4]] || item[0] }}[{{item[1]}}]
     </span>
   </p>
   <p v-if="detail.ssrPos.length" class="text-gray-600 text-xs">{{text.average}}{{colon}}<span class="text-green-600">{{avg5(detail.ssrPos)}}</span></p>
