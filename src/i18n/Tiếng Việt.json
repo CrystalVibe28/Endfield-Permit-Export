@@ -72,6 +72,12 @@
   "excel.header.total": "Số lần",
   "excel.header.pity": "Bảo hiểm",
   "excel.customFont": "Arial",
+  "ui.button.login": "Đăng nhập",
+  "ui.loginDialog.title": "Đăng nhập tài khoản",
+  "ui.loginDialog.server": "Chọn máy chủ",
+  "ui.loginDialog.roles": "Chọn vai trò",
+  "ui.loginDialog.hint": "Vui lòng đăng nhập trong cửa sổ bật lên trước",
+
   "excel.filePrefix": "",
   "excel.fileType": "Tập tin Excel",
   "gacha.type.1": "Chiêu Mộ Cơ Bản",

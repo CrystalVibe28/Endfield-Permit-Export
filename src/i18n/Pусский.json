@@ -67,6 +67,12 @@
   "excel.header.total": "Всего",
   "excel.header.pity": "Молитв после выпадения 5*",
   "excel.customFont": "Times New Roman",
+  "ui.button.login": "Войти",
+  "ui.loginDialog.title": "Вход в аккаунт",
+  "ui.loginDialog.server": "Выберите сервер",
+  "ui.loginDialog.roles": "Выберите роль",
+  "ui.loginDialog.hint": "Пожалуйста, войдите в появившемся окне",
+
   "excel.filePrefix": "",
   "excel.fileType": "Excel file",
   "gacha.type.1": "Специальный наем",

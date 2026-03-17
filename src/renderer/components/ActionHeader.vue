@@ -204,8 +204,8 @@
     >
       <div class="flex flex-col gap-4">
         <el-select v-model="state.loginProvider" :placeholder="ui.loginDialog.server">
-          <el-option label="官服 (Hypergryph)" value="hypergryph"></el-option>
-          <el-option label="国际服 (Gryphline)" value="gryphline"></el-option>
+          <el-option :label="ui.setting.cnServer + ' (Hypergryph)'" value="hypergryph"></el-option>
+          <el-option :label="ui.setting.seaServer + ' (Gryphline)'" value="gryphline"></el-option>
         </el-select>
         
         <el-button 

@@ -75,6 +75,12 @@
   "excel.header.remark": "bemerkung",
   "excel.wish2": "Wunsch 2",
   "excel.customFont": "Arial",
+  "ui.button.login": "Login",
+  "ui.loginDialog.title": "Account Login",
+  "ui.loginDialog.server": "Server auswählen",
+  "ui.loginDialog.roles": "Rolle auswählen",
+  "ui.loginDialog.hint": "Bitte zuerst im Popup-Fenster einloggen",
+
   "excel.filePrefix": "",
   "excel.fileType": "Excel Datei",
   "srgf.fileType": "Endfield Gacha Log Format Datei",

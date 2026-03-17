@@ -94,6 +94,12 @@
   "excel.header.remark": "Commentaire",
   "excel.wish2": "Recrutements hyperespaces 2",
   "excel.customFont": "Arial",
+  "ui.button.login": "Connexion",
+  "ui.loginDialog.title": "Connexion au compte",
+  "ui.loginDialog.server": "Sélectionner le serveur",
+  "ui.loginDialog.roles": "Sélectionner le rôle",
+  "ui.loginDialog.hint": "Veuillez vous connecter via la fenêtre pop-up",
+
   "excel.filePrefix": "",
   "excel.fileType": "Classeur Excel",
   "srgf.fileType": "Fichier Endfield Gacha Log Format",

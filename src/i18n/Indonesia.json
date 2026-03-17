@@ -71,6 +71,12 @@
   "excel.header.total": "total",
   "excel.header.pity": "dengan pity",
   "excel.customFont": "Arial",
+  "ui.button.login": "Masuk",
+  "ui.loginDialog.title": "Login Akun",
+  "ui.loginDialog.server": "Pilih Server",
+  "ui.loginDialog.roles": "Pilih Peran",
+  "ui.loginDialog.hint": "Silakan masuk di jendela pop-up terlebih dahulu",
+
   "excel.filePrefix": "",
   "excel.fileType": "Excel file",
   "gacha.type.1": "Headhunt Dasar",

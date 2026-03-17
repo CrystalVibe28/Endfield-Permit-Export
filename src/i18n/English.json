@@ -128,5 +128,10 @@
   "gacha.type.special": "Chartered Headhunting",
   "gacha.type.beginner": "New Horizon Headhunting",
   "gacha.type.urgent": "Urgent Recruitment",
-  "gacha.type.weapon": "Arsenal Issue"
+  "gacha.type.weapon": "Arsenal Issue",
+  "ui.button.login": "Login",
+  "ui.loginDialog.title": "Account Login",
+  "ui.loginDialog.server": "Select Server",
+  "ui.loginDialog.roles": "Select Role",
+  "ui.loginDialog.hint": "Please log in to the popup window first"
 }

@@ -64,6 +64,12 @@
   "excel.header.total": "TOTAL",
   "excel.header.pity": "DENTRO DO PITY",
   "excel.customFont": "Arial",
+  "ui.button.login": "Login",
+  "ui.loginDialog.title": "Login da Conta",
+  "ui.loginDialog.server": "Selecione o Servidor",
+  "ui.loginDialog.roles": "Selecione a Função",
+  "ui.loginDialog.hint": "Faça login através da janela pop-up",
+
   "excel.filePrefix": "",
   "excel.fileType": "Excel file",
   "gacha.type.1": "Basic Headhunting",
