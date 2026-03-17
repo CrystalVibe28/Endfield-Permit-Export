@@ -38,6 +38,11 @@ ipcMain.handle("GET_OAUTH_TOKEN", async (event, { loginToken, provider }) => {
   return await validateToken(loginToken, provider);
 });
 
+ipcMain.handle("VALIDATE_ACCOUNT_TOKEN", async (event, { token, provider }) => {
+  const result = await validateToken(token, provider);
+  return result !== null;
+});
+
 ipcMain.handle(
   "FETCH_UID_BY_TOKEN",
   async (event, { oauthToken, provider }) => {

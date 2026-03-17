@@ -31,9 +31,9 @@
           <p class="text-red-500 text-xs m-1.5 font-bold">{{text.manualWarning}}</p>
         </div>
       </el-form-item>
-      <el-form-item :label="common.data">
-        <el-button type="primary" plain @click="state.showDataDialog = true">{{common.dataManage}}</el-button>
-        <p class="text-gray-400 text-xs m-1.5">{{text.dataManagerHint}}</p>
+      <el-form-item :label="text.accountManage">
+        <el-button type="primary" plain @click="state.showAccountDialog = true">{{text.accountManage}}</el-button>
+        <p class="text-gray-400 text-xs m-1.5">{{text.accountManageHint}}</p>
       </el-form-item>
       <el-form-item :label="text.autoUpdate">
         <el-switch
@@ -69,26 +69,23 @@
     <p class="text-gray-600 text-xs mt-1">{{about.forum}}: <a @click="openForum" class="cursor-pointer text-blue-400">https://forum.gamer.com.tw/C.php?bsn=74604&snA=771</a></p>
     <p class="text-gray-600 text-xs mt-1">Github: <a @click="openGithub" class="cursor-pointer text-blue-400">https://github.com/AiverAiva/Endfield-Permit-Export</a></p>
     <p class="text-gray-600 text-xs mt-1 pb-6">UIGF: <a @click="openUIGF" class="cursor-pointer text-blue-400">https://uigf.org/</a></p>
-    <el-dialog v-model="state.showDataDialog" :title="common.dataManage" width="90%" :append-to-body="false">
+    <el-dialog v-model="state.showAccountDialog" :title="text.accountManage" width="90%" :append-to-body="false">
       <div class="">
-        <el-table :data="gachaDataInfo" border stripe>
-          <el-table-column property="uid" label="UID" width="128" />
-          <el-table-column property="time" :label="common.updateTime">
+        <el-table :data="state.linkedUsers" border stripe>
+          <el-table-column property="uid" label="UID" width="140" />
+          <el-table-column property="nickName" :label="text.nickName" width="120" />
+          <el-table-column property="serverName" :label="text.server" width="120" />
+          <el-table-column label="Token Status">
             <template #default="scope">
-              {{ new Date(scope.row.time).toLocaleString() }}
+              <el-tag :type="scope.row.valid ? 'success' : 'danger'" size="small">
+                {{ scope.row.valid ? text.tokenValid : text.tokenInvalid }}
+              </el-tag>
             </template>
           </el-table-column>
-          <el-table-column property="deleted" :label="common.status" width="128">
+          <el-table-column :label="common.action" width="100">
             <template #default="scope">
-              <el-tag type="info" size="small" v-if="scope.row.deleted">{{common.deleted}}</el-tag>
-              <el-tag type="success" size="small" v-else>{{common.normal}}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column property="deleted" :label="common.action" width="128">
-            <template #default="scope">
-              <el-tooltip :content="scope.row.deleted ? common.restore : common.delete" placement="top">
-                <el-button :loading="state.dataActionLoading" size="small" icon="refresh" plain type="success" @click="deleteData(scope.row.uid, 'restore')" v-if="scope.row.deleted"></el-button>
-                <el-button :loading="state.dataActionLoading" size="small" icon="delete" plain type="danger" @click="deleteData(scope.row.uid, 'delete')" v-else></el-button>
+              <el-tooltip :content="text.logoutAccount" placement="top">
+                <el-button :loading="state.actionLoading" size="small" icon="delete" plain type="danger" @click="logoutAccount(scope.row.uid)"></el-button>
               </el-tooltip>
             </template>
           </el-table-column>
@@ -126,8 +123,9 @@ const settingForm = reactive({
 })
 
 const state = reactive({
-  showDataDialog: false,
-  dataActionLoading: false
+  showAccountDialog: false,
+  actionLoading: false,
+  linkedUsers: []
 })
 
 const common = computed(() => props.i18n.ui.common)
@@ -159,17 +157,34 @@ const openUIGF = () => shell.openExternal('https://uigf.org/')
 const openForum = () => shell.openExternal('https://forum.gamer.com.tw/C.php?bsn=74604&snA=771')
 const openLink = (link) => shell.openExternal(link)
 
-const deleteData = async (uid, action) => {
-  state.dataActionLoading = true
-  await ipcRenderer.invoke('DELETE_DATA', uid, action)
-  state.dataActionLoading = false
+const logoutAccount = async (uid) => {
+  state.actionLoading = true
+  const users = state.linkedUsers.filter(u => u.uid !== uid)
+  await ipcRenderer.invoke('SAVE_CONFIG', ['users', JSON.parse(JSON.stringify(users))])
+  state.linkedUsers = users
+  state.actionLoading = false
   emit('refreshData')
+}
+
+const validateTokens = async (users) => {
+  const list = []
+  for (let user of users) {
+    const valid = await ipcRenderer.invoke('VALIDATE_ACCOUNT_TOKEN', { 
+      token: user.capturedToken || user.token, 
+      provider: user.provider 
+    })
+    list.push({ ...user, valid })
+  }
+  state.linkedUsers = list
 }
 
 onMounted(async () => {
   data.langMap = await ipcRenderer.invoke('LANG_MAP')
   const config = await ipcRenderer.invoke('GET_CONFIG')
   Object.assign(settingForm, config)
+  if (config.users) {
+    await validateTokens(config.users)
+  }
 })
 
 </script>

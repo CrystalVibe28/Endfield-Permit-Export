@@ -33,24 +33,10 @@
               <el-dropdown-item command="uigf-json">{{
                 ui.button.uigf
               }}</el-dropdown-item>
-              <el-dropdown-item command="import-json" divided>{{
-                ui.button.import
-              }}</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <el-tooltip
-          v-if="hasData && state.status !== 'loading'"
-          :content="ui.hint.newAccount"
-          placement="bottom"
-        >
-          <el-button
-            @click="newUser()"
-            plain
-            icon="plus"
-            class="focus:outline-none"
-          ></el-button>
-        </el-tooltip>
+
         <el-tooltip
           v-if="state.status === 'updated'"
           :content="ui.hint.relaunchHint"
@@ -65,13 +51,19 @@
             >{{ ui.button.directUpdate }}</el-button
           >
         </el-tooltip>
-        <el-button
-          @click="state.showLoginDlg = true"
-          plain
-          type="info"
-          icon="user"
-          class="focus:outline-none"
-        >{{ ui.button.login }}</el-button>
+        <el-tooltip
+          v-if="hasData && state.status !== 'loading'"
+          :content="ui.hint.newAccount"
+          placement="bottom"
+        >
+          <el-button
+            @click="state.showLoginDlg = true"
+            plain
+            type="info"
+            icon="user"
+            class="focus:outline-none"
+          >{{ ui.button.login }}</el-button>
+        </el-tooltip>
       </div>
       <div class="flex gap-2 items-center">
         <el-select
@@ -237,7 +229,14 @@
               class="!ml-0"
             >
               {{ role.nickName }} ({{ role.roleId }})
-            </el-button>
+</el-button>
+        <el-tooltip
+          v-if="hasData && state.status !== 'loading'"
+          :content="ui.hint.newAccount"
+          placement="bottom"
+        >
+          <span></span>
+        </el-tooltip>
           </div>
         </div>
       </div>
@@ -577,7 +576,6 @@ const openCacheFolder = async () => await ipcRenderer.invoke("OPEN_CACHE_FOLDER"
 const exportCommand = (type) => {
   if (type === "excel") ipcRenderer.invoke("SAVE_EXCEL");
   else if (type === "uigf-json") exportUIGFJSON();
-  else if (type === "import-json") importData();
 };
 
 const exportUIGFJSON = () => {
@@ -601,25 +599,13 @@ const exportUIGFJSON = () => {
   }).catch(() => {});
 };
 
-const importData = async () => {
-  state.status = "loading";
-  const data = await ipcRenderer.invoke("IMPORT_UIGF_JSON");
-  if (data) {
-    state.dataMap = data.dataMap;
-    state.current = data.current;
-    state.status = "loaded";
-    emit('data-updated', { dataMap: state.dataMap, current: state.current });
-  } else {
-    state.status = "failed";
-  }
-};
-
 const optionCommand = (type) => {
   if (type === "setting") showSetting(true);
   else if (type === "url") { state.urlInput = ""; state.showUrlDlg = true; }
   else if (type === "proxy") fetchData("proxy");
   else if (type === "copyUrl") copyUrl();
 };
+
 
 const showSetting = (show) => {
   state.showSetting = show;
