@@ -193,8 +193,8 @@
                     :title="item.name"
                   >
                     <img
-                      v-if="getCharacterIcon(item.name)"
-                      :src="getCharacterIcon(item.name)"
+                      v-if="getItemIcon(item.name)"
+                      :src="getItemIcon(item.name)"
                       class="w-full h-full object-cover"
                       :alt="item.name"
                     />
@@ -250,8 +250,8 @@
                        <!-- opacity-50 grayscale -->
 
                       <img
-                        v-if="getCharacterIcon(record)"
-                        :src="getCharacterIcon(record)"
+                        v-if="getItemIcon(record)"
+                        :src="getItemIcon(record)"
                         class="w-full h-full object-cover"
                         :alt="i18n?.wpn?.[record.item_id] || i18n?.char?.[record.item_id] || record.name"
                       />
@@ -524,14 +524,18 @@ const getPityColorText = (pity) => {
 
 // Use dynamic glob to detect available icons at build/runtime (Vite 2.x compatible)
 const characterIconFiles = import.meta.globEager("../assets/characters/*.png");
+const weaponIconFiles = import.meta.globEager("../assets/weapons/*.png");
 const bannerFiles = import.meta.globEager("../assets/banners/*.png");
 
-const getCharacterIcon = (record) => {
+const getItemIcon = (record) => {
   if (!record.item_id) return null;
   const fileName = `${record.item_id}.png`;
-  // Find key that ends with the filename
-  const matchKey = Object.keys(characterIconFiles).find(path => path.endsWith(fileName));
-  return matchKey ? characterIconFiles[matchKey].default : null;
+  // Search in both character and weapon icons
+  const charKey = Object.keys(characterIconFiles).find(path => path.endsWith(fileName));
+  if (charKey) return characterIconFiles[charKey].default;
+  
+  const wpnKey = Object.keys(weaponIconFiles).find(path => path.endsWith(fileName));
+  return wpnKey ? weaponIconFiles[wpnKey].default : null;
 };
 
 const getBannerImage = (poolId) => {
@@ -542,8 +546,11 @@ const getBannerImage = (poolId) => {
 
 const getCharacterFullImage = (charId) => {
   const fileName = `${charId}.png`;
-  const matchKey = Object.keys(characterIconFiles).find(path => path.endsWith(fileName));
-  return matchKey ? characterIconFiles[matchKey].default : null;
+  const charKey = Object.keys(characterIconFiles).find(path => path.endsWith(fileName));
+  if (charKey) return characterIconFiles[charKey].default;
+  
+  const wpnKey = Object.keys(weaponIconFiles).find(path => path.endsWith(fileName));
+  return wpnKey ? weaponIconFiles[wpnKey].default : null;
 };
 </script>
 
