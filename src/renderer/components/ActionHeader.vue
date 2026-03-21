@@ -434,14 +434,17 @@ const handleWebLogin = async () => {
           }
         } else {
           ElMessage.error("未找到角色信息");
+          await ipcRenderer.invoke("CLEAR_LOGIN_SESSION");
         }
       } else {
         ElMessage.error("授權失敗 (請重試)");
+        await ipcRenderer.invoke("CLEAR_LOGIN_SESSION");
       }
     }
   } catch (e) {
     console.error(e);
     ElMessage.error("登入程序發生錯誤");
+    await ipcRenderer.invoke("CLEAR_LOGIN_SESSION");
   } finally {
     state.isLoggingIn = false;
   }
