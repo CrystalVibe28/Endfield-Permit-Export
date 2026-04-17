@@ -5,6 +5,44 @@ const CHAR_LIST_URL = 'https://endfieldtools.dev/localdb/optimized/characters/ch
 const WPN_LIST_URL = 'https://endfieldtools.dev/localdb/optimized/weapons/weapons-list.json';
 const I18N_BASE_URL = 'https://endfieldtools.dev/localdb/optimized/i18n/core/I18nTextTable_';
 
+const KEY_ORDER = ['ui', 'log', 'excel', 'uigf', 'gacha', 'char', 'wpn'];
+
+function sortObjectKeys(obj) {
+  if (typeof obj !== 'object' || obj === null) return obj;
+  if (Array.isArray(obj)) return obj.map(sortObjectKeys);
+  const sorted = {};
+  Object.keys(obj).sort().forEach(key => {
+    sorted[key] = sortObjectKeys(obj[key]);
+  });
+  return sorted;
+}
+
+function sortWithCategoryOrder(localI18n) {
+  const other = {};
+  const grouped = {};
+  for (const key of Object.keys(localI18n)) {
+    const prefix = key.split('.')[0];
+    if (KEY_ORDER.includes(prefix)) {
+      if (!grouped[prefix]) grouped[prefix] = {};
+      grouped[prefix][key] = localI18n[key];
+    } else {
+      other[key] = localI18n[key];
+    }
+  }
+  const result = {};
+  for (const prefix of KEY_ORDER) {
+    if (grouped[prefix]) {
+      Object.keys(grouped[prefix]).sort().forEach(key => {
+        result[key] = grouped[prefix][key];
+      });
+    }
+  }
+  Object.keys(sortObjectKeys(other)).forEach(key => {
+    result[key] = other[key];
+  });
+  return result;
+}
+
 const LANG_MAP = {
   'CN': '简体中文.json',
   'TC': '繁體中文.json',
@@ -67,7 +105,7 @@ async function start() {
         }
       }
 
-      await fs.writeJson(localFilePath, localI18n, { spaces: 2 });
+      await fs.writeJson(localFilePath, sortWithCategoryOrder(localI18n), { spaces: 2 });
       console.log(`Updated ${fileName} successfully.`);
     } catch (err) {
       console.error(`Error processing ${code}:`, err.message);
