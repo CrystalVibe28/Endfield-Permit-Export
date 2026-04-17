@@ -473,10 +473,22 @@ const selectRole = async (role, isAuto = false) => {
   try {
     // 1. If we only have loginToken, get oauthToken
     if (loginToken && !oauthToken) {
+      // Pre-validate token before attempting exchange
+      const isValid = await ipcRenderer.invoke('VALIDATE_ACCOUNT_TOKEN', {
+        token: loginToken,
+        provider
+      });
+
+      if (!isValid) {
+        state.status = "failed";
+        ElMessage.error(t('ui.hint.tokenExpired') || "帳號已過期，請重新登入");
+        return;
+      }
+
       state.log = "正在換取 OAuth Token...";
-      oauthToken = await ipcRenderer.invoke('GET_OAUTH_TOKEN', { 
-        loginToken, 
-        provider 
+      oauthToken = await ipcRenderer.invoke('GET_OAUTH_TOKEN', {
+        loginToken,
+        provider
       });
     }
 
