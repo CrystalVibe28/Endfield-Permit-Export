@@ -1,0 +1,54 @@
+name: Sync Ingame Data
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  fetch-pools:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync Pool Data
+        id: pool_sync
+        run: |
+          node scripts/fetch_pools.js
+          if git diff --quiet static/checkpoint.txt; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No new pool detected. Skipping subsequent steps."
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            git add static/
+            git commit -m "chore: update daily pool data and checkpoint"
+            git push
+          fi
+
+      - name: Sync Translations (i18n)
+        if: steps.pool_sync.outputs.changed == 'true'
+        run: |
+          node scripts/update_i18n.js
+          git add src/i18n/
+          git commit -m "chore: update translations (i18n)" || echo "No changes to commit"
+          git push
+
+      - name: Sync Assets (Icons & Banners)
+        if: steps.pool_sync.outputs.changed == 'true'
+        run: |
+          node scripts/download_icons.js
+          node scripts/fetch_banners.js
+          git add src/renderer/assets/
+          git commit -m "chore: update character icons and banners" || echo "No changes to commit"
+          git push
