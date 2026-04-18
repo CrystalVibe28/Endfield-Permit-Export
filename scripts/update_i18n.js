@@ -1,4 +1,4 @@
-const fs = require('fs-extra');
+const fs = require('fs');
 const path = require('path');
 
 const CHAR_LIST_URL = 'https://endfieldtools.dev/localdb/optimized/characters/characters-list.json';
@@ -82,12 +82,12 @@ async function start() {
       const i18nTable = await i18nRes.json();
 
       const localFilePath = path.join(I18N_DIR, fileName);
-      if (!(await fs.pathExists(localFilePath))) {
+      if (!fs.existsSync(localFilePath)) {
         console.warn(`Local file ${fileName} does not exist, skipping.`);
         continue;
       }
 
-      const localI18n = await fs.readJson(localFilePath);
+      const localI18n = JSON.parse(fs.readFileSync(localFilePath, 'utf-8'));
 
       // Update characters
       for (const char of characters) {
@@ -105,7 +105,7 @@ async function start() {
         }
       }
 
-      await fs.writeJson(localFilePath, sortWithCategoryOrder(localI18n), { spaces: 2 });
+      fs.writeFileSync(localFilePath, JSON.stringify(sortWithCategoryOrder(localI18n), null, 2));
       console.log(`Updated ${fileName} successfully.`);
     } catch (err) {
       console.error(`Error processing ${code}:`, err.message);

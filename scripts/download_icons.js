@@ -1,4 +1,4 @@
-const fs = require("fs-extra");
+const fs = require("fs");
 const path = require("path");
 
 const CHAR_LIST_URL =
@@ -15,7 +15,7 @@ const CHAR_DEST = path.join(__dirname, "../src/renderer/assets/characters");
 const WPN_DEST = path.join(__dirname, "../src/renderer/assets/weapons");
 
 async function downloadFile(url, dest) {
-  if (await fs.pathExists(dest)) {
+  if (fs.existsSync(dest)) {
     // console.log(`Skipped: ${path.basename(dest)}`);
     return;
   }
@@ -27,7 +27,7 @@ async function downloadFile(url, dest) {
     }
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    await fs.writeFile(dest, buffer);
+    fs.writeFileSync(dest, buffer);
     console.log(`Downloaded: ${path.basename(dest)}`);
   } catch (err) {
     console.error(`Error downloading ${url}:`, err.message);
@@ -35,8 +35,8 @@ async function downloadFile(url, dest) {
 }
 
 async function start() {
-  await fs.ensureDir(CHAR_DEST);
-  await fs.ensureDir(WPN_DEST);
+  if (!fs.existsSync(CHAR_DEST)) fs.mkdirSync(CHAR_DEST, { recursive: true });
+  if (!fs.existsSync(WPN_DEST)) fs.mkdirSync(WPN_DEST, { recursive: true });
 
   console.log("Fetching character list...");
   try {
