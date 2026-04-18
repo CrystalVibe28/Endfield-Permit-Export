@@ -76,8 +76,8 @@ async function main() {
     
     fs.writeFileSync(path.join(STATIC_DIR, `special_${newCheckpoint}.json`), JSON.stringify(specialData, null, 2));
     if (weponData) {
-        // The user mentioned weponbox is a typo but we have to use wepon as id
-        fs.writeFileSync(path.join(STATIC_DIR, `wepon_${newCheckpoint}.json`), JSON.stringify(weponData, null, 2));
+        // The API uses 'weponbox' as pool_id prefix, keeping it consistent here.
+        fs.writeFileSync(path.join(STATIC_DIR, `weponbox_${newCheckpoint}.json`), JSON.stringify(weponData, null, 2));
     }
     console.log(`Done processing ${newCheckpoint}.`);
 }
