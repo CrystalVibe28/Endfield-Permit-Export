@@ -46,6 +46,7 @@ async function start() {
     console.log(`Found ${charIds.length} characters. Starting download...`);
 
     for (const id of charIds) {
+      if (id === "chr_9000_endmin") continue;
       const url = `${CHAR_ICON_BASE}${id}.png`;
       const dest = path.join(CHAR_DEST, `${id}.png`);
       await downloadFile(url, dest);
