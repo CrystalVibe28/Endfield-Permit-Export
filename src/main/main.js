@@ -5,6 +5,7 @@ require('./getData')
 require('./bridge')
 require('./excel')
 require('./UIGFJson')
+require('./mergeSave')
 const { getUpdateInfo } = require('./update/index')
 
 const isDev = !app.isPackaged

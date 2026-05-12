@@ -55,6 +55,10 @@
         </el-switch>
         <p class="text-gray-400 text-xs m-1.5">{{text.fetchFullHistoryHint}}</p>
       </el-form-item> -->
+      <el-form-item :label="text.mergeSave">
+        <el-button type="primary" plain @click="state.showMergeDialog = true">{{text.mergeSave}}</el-button>
+        <p class="text-gray-400 text-xs m-1.5">{{text.mergeSaveHint}}</p>
+      </el-form-item>
       <el-form-item :label="text.proxyMode">
         <el-switch
           @change="saveSetting"
@@ -93,6 +97,12 @@
         </el-table>
       </div>
     </el-dialog>
+    <MergeSave
+      v-if="state.showMergeDialog"
+      :i18n="props.i18n"
+      @refreshData="emit('refreshData')"
+      @close="state.showMergeDialog = false"
+    />
     </div>
   </teleport>
 </template>
@@ -100,6 +110,7 @@
 <script setup>
 const { ipcRenderer, shell } = require('electron')
 import { reactive, onMounted, computed } from 'vue'
+import MergeSave from './MergeSave.vue'
 
 const emit = defineEmits(['close', 'changeLang', 'refreshData'])
 
@@ -125,6 +136,7 @@ const settingForm = reactive({
 
 const state = reactive({
   showAccountDialog: false,
+  showMergeDialog: false,
   actionLoading: false,
   linkedUsers: []
 })
