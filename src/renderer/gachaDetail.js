@@ -8,14 +8,17 @@ const itemCount = (map, name) => {
   }
 }
 
-const order = ['special', 'weapon', 'standard', 'beginner', 'urgent']
+const order = ['special', 'joint', 'weapon', 'standard', 'beginner', 'urgent']
 
 const gachaDetail = (data) => {
   if (!data) return
   const detailMap = new Map()
   const keys = [...data.keys()]
-  // Optional: sort keys if needed, e.g. standard pools first
-  // keys.sort(...) 
+  keys.sort((a, b) => {
+    const aIndex = order.includes(a) ? order.indexOf(a) : order.length
+    const bIndex = order.includes(b) ? order.indexOf(b) : order.length
+    return aIndex - bIndex
+  })
 
   for (let key of keys) {
     if (!data.has(key)) continue
