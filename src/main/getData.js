@@ -587,7 +587,8 @@ const getAllRecord = async (
                         }
                         continue;
                     }
-                    characterList.push({ ...item, _poolType: poolType });
+                    item._poolType = poolType;
+                    characterList.push(item);
                 }
 
                 if (stopFetch) {
