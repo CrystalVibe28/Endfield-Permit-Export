@@ -2,26 +2,13 @@
   <div v-if="ui" class="action-header mb-6">
     <div class="flex justify-between items-center">
       <div class="space-x-3 flex items-center">
-        <el-button
-          type="primary"
-          :icon="state.status === 'init' ? 'milk-tea' : 'refresh-right'"
-          class="focus:outline-none"
-          :disabled="!allowClick()"
-          plain
-          @click="fetchData()"
-          :loading="state.status === 'loading'"
-          >{{
+        <el-button type="primary" :icon="state.status === 'init' ? 'milk-tea' : 'refresh-right'"
+          class="focus:outline-none" :disabled="!allowClick()" plain @click="fetchData()"
+          :loading="state.status === 'loading'">{{
             state.status === "init" ? ui.button.load : ui.button.update
-          }}</el-button
-        >
+          }}</el-button>
         <el-dropdown :disabled="!gachaData" @command="exportCommand">
-          <el-button
-            :disabled="!gachaData"
-            icon="folder-opened"
-            class="focus:outline-none"
-            type="success"
-            plain
-          >
+          <el-button :disabled="!gachaData" icon="folder-opened" class="focus:outline-none" type="success" plain>
             {{ ui.button.files }}
             <el-icon class="el-icon--right"><arrow-down /></el-icon>
           </el-button>
@@ -37,82 +24,41 @@
           </template>
         </el-dropdown>
 
-        <el-tooltip
-          v-if="state.status === 'updated'"
-          :content="ui.hint.relaunchHint"
-          placement="bottom"
-        >
-          <el-button
-            @click="relaunch()"
-            type="success"
-            icon="refresh"
-            class="focus:outline-none"
-            style="margin-left: 24px"
-            >{{ ui.button.directUpdate }}</el-button
-          >
+        <el-tooltip v-if="state.status === 'updated'" :content="ui.hint.relaunchHint" placement="bottom">
+          <el-button @click="relaunch()" type="success" icon="refresh" class="focus:outline-none"
+            style="margin-left: 24px">{{
+              ui.button.directUpdate }}</el-button>
         </el-tooltip>
-        <el-tooltip
-          v-if="state.status !== 'loading'"
-          :content="ui.hint.newAccount"
-          placement="bottom"
-        >
-          <el-button
-            @click="state.showLoginDlg = true"
-            plain
-            type="info"
-            icon="user"
-            class="focus:outline-none"
-          >{{ ui.button.login }}</el-button>
+        <el-tooltip v-if="state.status !== 'loading'" :content="ui.hint.newAccount" placement="bottom">
+          <el-button @click="state.showLoginDlg = true" plain type="info" icon="user" class="focus:outline-none">{{
+            ui.button.login }}</el-button>
         </el-tooltip>
 
       </div>
       <div class="flex gap-2 items-center">
-        <el-select
-          v-if="
-            state.status !== 'loading' &&
-            uidList.length > 0
-          "
-          class="!w-64"
-          @change="changeCurrent"
-          v-model="state.current"
-        >
-          <el-option
-            v-for="item of uidList"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
-          >
+        <el-select v-if="
+          state.status !== 'loading' &&
+          uidList.length > 0
+        " class="!w-64" @change="changeCurrent" v-model="state.current">
+          <el-option v-for="item of uidList" :key="item.value" :label="item.label" :value="item.value">
           </el-option>
         </el-select>
         <el-dropdown @command="optionCommand">
-          <el-button
-            @click="showSetting(true)"
-            class="focus:outline-none"
-            plain
-            type="info"
-            icon="more"
-            >{{ ui.button.option }}</el-button
-          >
+          <el-button @click="showSetting(true)" class="focus:outline-none" plain type="info" icon="more">{{
+            ui.button.option
+            }}</el-button>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="setting" icon="setting">{{
                 ui.button.setting
               }}</el-dropdown-item>
-              <el-dropdown-item
-                :disabled="!allowClick() || state.status === 'loading'"
-                command="url"
-                icon="link"
-                >{{ ui.button.url }}</el-dropdown-item
-              >
+              <el-dropdown-item :disabled="!allowClick() || state.status === 'loading'" command="url" icon="link">{{
+                ui.button.url }}</el-dropdown-item>
               <el-dropdown-item command="copyUrl" icon="DocumentCopy">{{
                 ui.button.copyUrl
               }}</el-dropdown-item>
-              <el-dropdown-item
-                :disabled="!allowClick() || state.status === 'loading'"
-                command="proxy"
-                icon="position"
-                >{{ ui.button.startProxy }}</el-dropdown-item
-              >
+              <el-dropdown-item :disabled="!allowClick() || state.status === 'loading'" command="proxy"
+                icon="position">{{ ui.button.startProxy }}</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -120,64 +66,29 @@
     </div>
     <p class="text-gray-400 my-2 text-xs flex items-center">
       {{ hint }}
-      <el-button
-        @click="state.showCacheCleanDlg = true"
-        v-if="state.authkeyTimeout"
-        style="margin-left: 8px"
-        size="small"
-        plain
-        round
-        >{{ ui.button.solution }}</el-button
-      >
+      <el-button @click="state.showCacheCleanDlg = true" v-if="state.authkeyTimeout" style="margin-left: 8px"
+        size="small" plain round>{{ ui.button.solution }}</el-button>
     </p>
 
     <!-- Dialogs -->
-    <Setting
-      v-if="state.showSetting"
-      :i18n="i18n"
-      :gacha-data-info="dataInfo"
-      @refreshData="readData()"
-      @changeLang="emit('changeLang')"
-      @close="showSetting(false)"
-    ></Setting>
+    <Setting v-if="state.showSetting" :i18n="i18n" :gacha-data-info="dataInfo" @refreshData="readData()"
+      @changeLang="emit('changeLang')" @close="showSetting(false)"></Setting>
 
-    <el-dialog
-      :title="ui.urlDialog.title"
-      v-model="state.showUrlDlg"
-      width="90%"
-      class="max-w-md"
-    >
+    <el-dialog :title="ui.urlDialog.title" v-model="state.showUrlDlg" width="90%" class="max-w-md">
       <p class="mb-4 text-gray-500">{{ ui.urlDialog.hint }}</p>
-      <el-input
-        type="textarea"
-        :autosize="{ minRows: 4, maxRows: 6 }"
-        :placeholder="ui.urlDialog.placeholder"
-        v-model="state.urlInput"
-        spellcheck="false"
-      ></el-input>
+      <el-input type="textarea" :autosize="{ minRows: 4, maxRows: 6 }" :placeholder="ui.urlDialog.placeholder"
+        v-model="state.urlInput" spellcheck="false"></el-input>
       <template #footer>
         <span class="dialog-footer">
-          <el-button
-            @click="state.showUrlDlg = false"
-            class="focus:outline-none"
-            >{{ ui.common.cancel }}</el-button
-          >
-          <el-button
-            type="primary"
-            @click="((state.showUrlDlg = false), fetchData(state.urlInput))"
-            class="focus:outline-none"
-            >{{ ui.common.ok }}</el-button
-          >
+          <el-button @click="state.showUrlDlg = false" class="focus:outline-none">{{ ui.common.cancel }}</el-button>
+          <el-button type="primary" @click="((state.showUrlDlg = false), fetchData(state.urlInput))"
+            class="focus:outline-none">{{ ui.common.ok }}</el-button>
         </span>
       </template>
     </el-dialog>
 
-    <el-dialog
-      :title="ui.button.solution"
-      v-model="state.showCacheCleanDlg"
-      width="90%"
-      class="max-w-md cache-clean-dialog"
-    >
+    <el-dialog :title="ui.button.solution" v-model="state.showCacheCleanDlg" width="90%"
+      class="max-w-md cache-clean-dialog">
       <el-button plain icon="folder" type="success" @click="openCacheFolder">{{
         ui.button.cacheFolder
       }}</el-button>
@@ -187,57 +98,33 @@
       <p class="my-2 text-gray-500 text-xs">{{ ui.extra.findCacheFolder }}</p>
       <template #footer>
         <div class="dialog-footer text-center">
-          <el-button
-            type="primary"
-            @click="state.showCacheCleanDlg = false"
-            class="focus:outline-none"
-            >{{ ui.common.ok }}</el-button
-          >
+          <el-button type="primary" @click="state.showCacheCleanDlg = false" class="focus:outline-none">{{ ui.common.ok
+            }}</el-button>
         </div>
       </template>
     </el-dialog>
 
-    <el-dialog
-      :title="ui.loginDialog.title"
-      v-model="state.showLoginDlg"
-      width="90%"
-      class="max-w-md"
-    >
+    <el-dialog :title="ui.loginDialog.title" v-model="state.showLoginDlg" width="90%" class="max-w-md">
       <div class="flex flex-col gap-4">
         <el-select v-model="state.loginProvider" :placeholder="ui.loginDialog.server">
           <el-option :label="ui.setting.cnServer + ' (Hypergryph)'" value="hypergryph"></el-option>
           <el-option :label="ui.setting.seaServer + ' (Gryphline)'" value="gryphline"></el-option>
         </el-select>
-        
-        <el-button 
-          v-if="!state.roles.length"
-          type="primary" 
-          @click="handleWebLogin" 
-          :loading="state.isLoggingIn"
-          class="w-full"
-        >
+
+        <el-button v-if="!state.roles.length" type="primary" @click="handleWebLogin" :loading="state.isLoggingIn"
+          class="w-full">
           {{ ui.loginDialog.hint }}
         </el-button>
 
         <div v-if="state.roles.length" class="space-y-3">
           <p class="text-sm font-bold text-gray-700">{{ ui.loginDialog.roles }}</p>
           <div class="grid grid-cols-1 gap-2">
-            <el-button 
-              v-for="role in state.roles" 
-              :key="role.roleId"
-              @click="selectRole(role)"
-              plain
-              class="!ml-0"
-            >
+            <el-button v-for="role in state.roles" :key="role.roleId" @click="selectRole(role)" plain class="!ml-0">
               {{ role.nickName }} ({{ role.roleId }})
-</el-button>
-        <el-tooltip
-          v-if="hasData && state.status !== 'loading'"
-          :content="ui.hint.newAccount"
-          placement="bottom"
-        >
-          <span></span>
-        </el-tooltip>
+            </el-button>
+            <el-tooltip v-if="hasData && state.status !== 'loading'" :content="ui.hint.newAccount" placement="bottom">
+              <span></span>
+            </el-tooltip>
           </div>
         </div>
       </div>
@@ -305,7 +192,7 @@ const uidList = computed(() => {
   // Linked accounts that might not have files yet
   for (let user of state.linkedUsers) {
     if (!dataMap.value.has(user.uid)) {
-       list.push({ label: `${user.nickName}(${user.roleId})`, value: user.uid });
+      list.push({ label: `${user.nickName}(${user.roleId})`, value: user.uid });
     }
   }
 
@@ -313,10 +200,10 @@ const uidList = computed(() => {
 });
 
 const hasData = computed(() => {
-    for (let [uid, data] of state.dataMap) {
-        if (data.result && data.result.size > 0) return true;
-    }
-    return false;
+  for (let [uid, data] of state.dataMap) {
+    if (data.result && data.result.size > 0) return true;
+  }
+  return false;
 });
 
 const gachaData = computed(() => {
@@ -341,10 +228,10 @@ const cacheCleanTextList = computed(() => {
 const hint = computed(() => {
   const data = state.dataMap.get(state.current);
   if (!ui.value) return "...";
-  
+
   const { hint } = ui.value;
   const { colon } = i18n.value.symbol;
-  
+
   if (state.status === "init") return hint.init;
   if (state.status === "loaded") return `${hint.lastUpdate}${colon}${new Date(data.time).toLocaleString()}`;
   if (state.status === "loading") return state.log || "...";
@@ -356,7 +243,7 @@ const hint = computed(() => {
 const allowClick = () => {
   const isLinked = state.linkedUsers.find(u => u.uid === state.current);
   if (!isLinked) return false;
-  
+
   const data = state.dataMap.get(state.current);
   if (!data) return true;
   if (Date.now() - data.time < 1000 * 10) return false;
@@ -374,9 +261,9 @@ const fetchData = async (url) => {
       // 1. Try to get a totally fresh token from cookies (Auto Refresh)
       const freshToken = await ipcRenderer.invoke('AUTO_GET_TOKEN', isLinked.provider);
       if (freshToken) {
-         return await selectRole({ ...isLinked, capturedToken: freshToken }, true);
+        return await selectRole({ ...isLinked, capturedToken: freshToken }, true);
       }
-      
+
       // 2. Fallback: Try the stored capturedToken if it exists
       if (isLinked.capturedToken) {
         state.log = "使用存儲的 Token 嘗試更新...";
@@ -385,7 +272,7 @@ const fetchData = async (url) => {
     } catch (e) {
       console.warn("Auto refresh fallback failure", e);
     }
-    
+
     ElMessage.warning("自動獲取 Token 失敗，請重新登入");
     state.showLoginDlg = true;
     state.status = "init";
@@ -411,19 +298,19 @@ const handleWebLogin = async () => {
   state.isLoggingIn = true;
   try {
     const token = await ipcRenderer.invoke('OPEN_LOGIN_WINDOW', state.loginProvider);
-    
+
     if (token) {
       state.capturedToken = token;
-      const oauthToken = await ipcRenderer.invoke('GET_OAUTH_TOKEN', { 
-        loginToken: token, 
-        provider: state.loginProvider 
+      const oauthToken = await ipcRenderer.invoke('GET_OAUTH_TOKEN', {
+        loginToken: token,
+        provider: state.loginProvider
       });
 
       if (oauthToken) {
         state.oauthToken = oauthToken; // Store temporarily
-        const bindings = await ipcRenderer.invoke('FETCH_UID_BY_TOKEN', { 
-          oauthToken, 
-          provider: state.loginProvider 
+        const bindings = await ipcRenderer.invoke('FETCH_UID_BY_TOKEN', {
+          oauthToken,
+          provider: state.loginProvider
         });
 
         if (bindings && bindings.length > 0) {
@@ -454,15 +341,15 @@ const selectRole = async (role, isAuto = false) => {
   state.showLoginDlg = false;
   state.status = "loading";
   state.log = isAuto ? "正在更新數據..." : "正在抓取資料...";
-  
+
   const provider = role.provider || state.loginProvider;
-  const apiDomain = provider === 'gryphline' 
-    ? 'https://ef-webview.gryphline.com' 
+  const apiDomain = provider === 'gryphline'
+    ? 'https://ef-webview.gryphline.com'
     : 'https://ef-webview.hypergryph.com';
 
   // Token Chain: loginToken (capturedToken) -> oauthToken -> u8Token
   let loginToken = role.capturedToken || state.capturedToken;
-  
+
   // If we are passing a fresh capturedToken (auto-refresh), 
   // we must ignore existing tokens and restart the chain.
   let oauthToken = role.capturedToken ? null : (role.oauthToken || state.oauthToken);
@@ -481,7 +368,7 @@ const selectRole = async (role, isAuto = false) => {
 
       if (!isValid) {
         state.status = "failed";
-        ElMessage.error(t('ui.hint.tokenExpired') || "帳號已過期，請重新登入");
+        ElMessage.error(ui.value.hint.tokenExpired || "帳號已過期，請重新登入");
         return;
       }
 
@@ -519,27 +406,27 @@ const selectRole = async (role, isAuto = false) => {
       roleId: role.roleId,
       lang: i18n.value?.lang || 'zh-cn',
       apiDomain,
-      uid: appUid 
+      uid: appUid
     });
 
     if (data) {
       state.dataMap = data.dataMap;
       state.current = appUid;
       state.status = "loaded";
-      
+
       // Update/Save to linkedUsers
       const users = JSON.parse(JSON.stringify(state.linkedUsers));
       const newUser = {
-          uid: appUid,
-          gameUid: role.uid || role.hashUid, 
-          roleId: role.roleId, 
-          nickName: role.nickName,
-          serverId: role.serverId,
-          serverName: role.serverName,
-          provider: provider,
-          token: u8Token, 
-          hashUid: hashUid,
-          capturedToken: loginToken // Store the long-lived login token
+        uid: appUid,
+        gameUid: role.uid || role.hashUid,
+        roleId: role.roleId,
+        nickName: role.nickName,
+        serverId: role.serverId,
+        serverName: role.serverName,
+        provider: provider,
+        token: u8Token,
+        hashUid: hashUid,
+        capturedToken: loginToken // Store the long-lived login token
       };
       const idx = users.findIndex(u => u.uid === appUid);
       if (idx !== -1) users[idx] = newUser;
@@ -619,7 +506,7 @@ const exportUIGFJSON = () => {
       }
       done();
     },
-  }).catch(() => {});
+  }).catch(() => { });
 };
 
 const optionCommand = (type) => {
@@ -659,12 +546,12 @@ onMounted(async () => {
   for (let provider of ['hypergryph', 'gryphline']) {
     const freshToken = await ipcRenderer.invoke('AUTO_GET_TOKEN', provider);
     if (freshToken) {
-       console.log(`Auto Refreshed Token for ${provider}`);
-       // Update capturedToken for accounts using this provider if they are current
-       const activeAccount = state.linkedUsers.find(u => u.uid === state.current && u.provider === provider);
-       if (activeAccount) {
-         state.capturedToken = freshToken;
-       }
+      console.log(`Auto Refreshed Token for ${provider}`);
+      // Update capturedToken for accounts using this provider if they are current
+      const activeAccount = state.linkedUsers.find(u => u.uid === state.current && u.provider === provider);
+      if (activeAccount) {
+        state.capturedToken = freshToken;
+      }
     }
   }
 });
