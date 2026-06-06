@@ -179,12 +179,14 @@ const saveData = async (data) => {
 const POOL_TYPES = [
     "E_CharacterGachaPoolType_Standard",
     "E_CharacterGachaPoolType_Special",
+    "E_CharacterGachaPoolType_Joint",
     "E_CharacterGachaPoolType_Beginner",
 ];
 
 const poolIdMap = {
     "E_CharacterGachaPoolType_Standard": "standard",
     "E_CharacterGachaPoolType_Special": "special",
+    "E_CharacterGachaPoolType_Joint": "joint",
     "E_CharacterGachaPoolType_Beginner": "beginner",
 };
 
@@ -222,6 +224,7 @@ const processGryphlineList = ({ characterList = [], weaponList = [] }) => {
     const pools = {
         "standard": [],
         "special": [],
+        "joint": [],
         "weapon": [],
         "beginner": [],
         "urgent": [],
@@ -262,12 +265,19 @@ const processGryphlineList = ({ characterList = [], weaponList = [] }) => {
             pools["urgent"].push(adapted);
         } else {
             const pid = item.poolId || "";
-            if (pid === "standard") {
+            const mappedType = poolIdMap[item.poolType || item._poolType];
+            if (mappedType && pools[mappedType]) {
+                adapted.gacha_type = mappedType;
+                pools[mappedType].push(adapted);
+            } else if (pid === "standard") {
                 adapted.gacha_type = "standard";
                 pools["standard"].push(adapted);
             } else if (pid === "beginner") {
                 adapted.gacha_type = "beginner";
                 pools["beginner"].push(adapted);
+            } else if (pid === "joint" || pid.startsWith("joint_")) {
+                adapted.gacha_type = "joint";
+                pools["joint"].push(adapted);
             } else if (pid.startsWith("special_")) {
                 adapted.gacha_type = "special";
                 pools["special"].push(adapted);
@@ -467,6 +477,7 @@ const getAllRecord = async (
     // Populate typeMap for logging purposes
     typeMap.set("standard", i18n.parse(i18n.gacha.type.standard));
     typeMap.set("special", i18n.parse(i18n.gacha.type.special));
+    typeMap.set("joint", i18n.parse(i18n.gacha.type.joint));
     typeMap.set("weapon", i18n.parse(i18n.gacha.type.weapon));
     typeMap.set("beginner", i18n.parse(i18n.gacha.type.beginner));
     typeMap.set("urgent", i18n.parse(i18n.gacha.type.urgent));
@@ -576,6 +587,7 @@ const getAllRecord = async (
                         }
                         continue;
                     }
+                    item._poolType = poolType;
                     characterList.push(item);
                 }
 
@@ -800,6 +812,10 @@ const readData = async () => {
                     uiData.typeMap.set(
                         "special",
                         i18n.parse(i18n.gacha.type.special),
+                    );
+                    uiData.typeMap.set(
+                        "joint",
+                        i18n.parse(i18n.gacha.type.joint),
                     );
                     uiData.typeMap.set(
                         "weapon",

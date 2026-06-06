@@ -205,7 +205,7 @@
   "wpn.wpn_sword_0020": "フィンチェイサー3.0",
   "wpn.wpn_sword_0021": "大願",
   "wpn.wpn_sword_0022": "Lupine Scarlet",
-  "symbol.colon": "：",
+"symbol.colon": "：",
   "log.login.tryAutoRefresh": "トークンの自動更新を試みています...",
   "log.login.tryStoredToken": "保存されたトークンで更新を試みています...",
   "log.login.fetchingOAuth": "OAuth トークンを取得中...",
