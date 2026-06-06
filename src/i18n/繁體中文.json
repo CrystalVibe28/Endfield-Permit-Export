@@ -255,5 +255,19 @@
   "wpn.wpn_sword_0020": "逐鱗3.0",
   "wpn.wpn_sword_0021": "宏願",
   "wpn.wpn_sword_0022": "Lupine Scarlet",
-  "symbol.colon": "："
+  "symbol.colon": "：",
+  "log.login.tryAutoRefresh": "嘗試自動獲取最新 Token...",
+  "log.login.tryStoredToken": "使用存儲的 Token 嘗試更新...",
+  "log.login.fetchingOAuth": "正在換取 OAuth Token...",
+  "log.login.fetchingU8": "正在獲取 u8 token...",
+  "log.fetch.updating": "正在更新數據...",
+  "log.fetch.fetching": "正在抓取資料...",
+  "ui.toast.autoRefreshFailed": "自動獲取 Token 失敗，請重新登入",
+  "ui.toast.roleNotFound": "未找到角色資訊",
+  "ui.toast.authFailed": "授權失敗 (請重試)",
+  "ui.toast.loginError": "登入程序發生錯誤",
+  "ui.toast.tokenFailed": "獲取 Token 失敗，請重試",
+  "ui.toast.fetchSuccess": "數據抓取成功",
+  "ui.toast.fetchFailed": "數據抓取失敗",
+  "ui.toast.processError": "處理角色資訊時發生錯誤"
 }

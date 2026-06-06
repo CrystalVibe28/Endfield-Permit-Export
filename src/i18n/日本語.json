@@ -52,6 +52,7 @@
   "ui.hint.lastUpdate": "最終データ更新時間は",
   "ui.hint.newAccount": "他のアカウントからデータをエクスポートする",
   "ui.hint.relaunchHint": "更新は完了しました！ボタンをクリックしてツールを再起動すると有効になります",
+  "ui.hint.tokenExpired": "トークンの有効期限が切れました。再度ログインしてください",
   "ui.loginDialog.hint": "ポップアップウィンドウで先にログインしてください",
   "ui.loginDialog.roles": "ロールを選択",
   "ui.loginDialog.server": "サーバーを選択",
@@ -204,5 +205,19 @@
   "wpn.wpn_sword_0020": "フィンチェイサー3.0",
   "wpn.wpn_sword_0021": "大願",
   "wpn.wpn_sword_0022": "Lupine Scarlet",
-  "symbol.colon": "："
+  "symbol.colon": "：",
+  "log.login.tryAutoRefresh": "トークンの自動更新を試みています...",
+  "log.login.tryStoredToken": "保存されたトークンで更新を試みています...",
+  "log.login.fetchingOAuth": "OAuth トークンを取得中...",
+  "log.login.fetchingU8": "u8 トークンを取得中...",
+  "log.fetch.updating": "データを更新中...",
+  "log.fetch.fetching": "データを取得中...",
+  "ui.toast.autoRefreshFailed": "自動更新に失敗しました。再度ログインしてください",
+  "ui.toast.roleNotFound": "キャラクター情報が見つかりません",
+  "ui.toast.authFailed": "認証に失敗しました（再試行してください）",
+  "ui.toast.loginError": "ログイン処理中にエラーが発生しました",
+  "ui.toast.tokenFailed": "トークンの取得に失敗しました。再試行してください",
+  "ui.toast.fetchSuccess": "データの取得に成功しました",
+  "ui.toast.fetchFailed": "データの取得に失敗しました",
+  "ui.toast.processError": "キャラクター情報の処理中にエラーが発生しました"
 }

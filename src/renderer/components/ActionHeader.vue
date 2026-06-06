@@ -256,7 +256,7 @@ const fetchData = async (url) => {
   const isLinked = state.linkedUsers.find(u => u.uid === state.current);
   if (isLinked) {
     state.status = "loading";
-    state.log = "嘗試自動獲取最新 Token...";
+    state.log = i18n.value.log.login.tryAutoRefresh;
     try {
       // 1. Try to get a totally fresh token from cookies (Auto Refresh)
       const freshToken = await ipcRenderer.invoke('AUTO_GET_TOKEN', isLinked.provider);
@@ -266,14 +266,14 @@ const fetchData = async (url) => {
 
       // 2. Fallback: Try the stored capturedToken if it exists
       if (isLinked.capturedToken) {
-        state.log = "使用存儲的 Token 嘗試更新...";
+        state.log = i18n.value.log.login.tryStoredToken;
         return await selectRole(isLinked, true);
       }
     } catch (e) {
       console.warn("Auto refresh fallback failure", e);
     }
 
-    ElMessage.warning("自動獲取 Token 失敗，請重新登入");
+    ElMessage.warning(i18n.value.ui.toast.autoRefreshFailed);
     state.showLoginDlg = true;
     state.status = "init";
     state.log = "";
@@ -320,17 +320,17 @@ const handleWebLogin = async () => {
             await selectRole(state.roles[0]);
           }
         } else {
-          ElMessage.error("未找到角色信息");
+          ElMessage.error(i18n.value.ui.toast.roleNotFound);
           await ipcRenderer.invoke("CLEAR_LOGIN_SESSION");
         }
       } else {
-        ElMessage.error("授權失敗 (請重試)");
+        ElMessage.error(i18n.value.ui.toast.authFailed);
         await ipcRenderer.invoke("CLEAR_LOGIN_SESSION");
       }
     }
   } catch (e) {
     console.error(e);
-    ElMessage.error("登入程序發生錯誤");
+    ElMessage.error(i18n.value.ui.toast.loginError);
     await ipcRenderer.invoke("CLEAR_LOGIN_SESSION");
   } finally {
     state.isLoggingIn = false;
@@ -340,7 +340,7 @@ const handleWebLogin = async () => {
 const selectRole = async (role, isAuto = false) => {
   state.showLoginDlg = false;
   state.status = "loading";
-  state.log = isAuto ? "正在更新數據..." : "正在抓取資料...";
+  state.log = isAuto ? i18n.value.log.fetch.updating : i18n.value.log.fetch.fetching;
 
   const provider = role.provider || state.loginProvider;
   const apiDomain = provider === 'gryphline'
@@ -368,11 +368,11 @@ const selectRole = async (role, isAuto = false) => {
 
       if (!isValid) {
         state.status = "failed";
-        ElMessage.error(ui.value.hint.tokenExpired || "帳號已過期，請重新登入");
+        ElMessage.error(ui.value.hint.tokenExpired);
         return;
       }
 
-      state.log = "正在換取 OAuth Token...";
+      state.log = i18n.value.log.login.fetchingOAuth;
       oauthToken = await ipcRenderer.invoke('GET_OAUTH_TOKEN', {
         loginToken,
         provider
@@ -383,7 +383,7 @@ const selectRole = async (role, isAuto = false) => {
     // If it's a new login, bindings were fetched in handleWebLogin. 
     // If it's auto-refresh, hashUid should be in the 'role' object (from linkedUsers).
     if (oauthToken && hashUid) {
-      state.log = "正在獲取 u8 token...";
+      state.log = i18n.value.log.login.fetchingU8;
       const freshU8 = await ipcRenderer.invoke('GET_U8_TOKEN_BY_UID', {
         uid: hashUid,
         oauthToken,
@@ -394,7 +394,7 @@ const selectRole = async (role, isAuto = false) => {
 
     if (!u8Token) {
       state.status = "failed";
-      ElMessage.error("獲取 Token 失敗，請重試");
+      ElMessage.error(i18n.value.ui.toast.tokenFailed);
       return;
     }
 
@@ -443,15 +443,15 @@ const selectRole = async (role, isAuto = false) => {
       }
 
       emit('data-updated', { dataMap: state.dataMap, current: state.current });
-      if (!isAuto) ElMessage.success("數據抓取成功");
+      if (!isAuto) ElMessage.success(i18n.value.ui.toast.fetchSuccess);
     } else {
       state.status = "failed";
-      if (!isAuto) ElMessage.error("數據抓取失敗");
+      if (!isAuto) ElMessage.error(i18n.value.ui.toast.fetchFailed);
     }
   } catch (e) {
     console.error("selectRole error:", e);
     state.status = "failed";
-    ElMessage.error("處理角色資訊時發生錯誤");
+    ElMessage.error(i18n.value.ui.toast.processError);
   }
 };
 
