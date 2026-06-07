@@ -1,5 +1,4 @@
-
-[中文](https://github.com/biuuu/star-rail-warp-export/blob/main/README.md) | English
+[中文](../README.md) | English
 
 <div align="center">
   <h1>Endfield Permit Export</h1>
@@ -20,55 +19,54 @@
   </p>
 </div>
 
-This project is modified from the [genshin-wish-export](https://github.com/biuuu/genshin-wish-export/) repository, and its functions are basically the same.
+This project is modified from [star-rail-warp-export](https://github.com/biuuu/star-rail-warp-export/), adapted for *Arknights: Endfield* (Gryphline).
 
-A tool made from Electron that runs on the Windows 64 bit operating system.
+An Electron-based desktop tool that runs on Windows 64-bit.
 
-Read the game log or proxy to get the authKey needed to access the game warp history API, and then use the authKey to read the game wish history.
+Reads game logs or uses proxy mode to obtain the authKey required to access the gacha history API, then uses the authKey to fetch gacha records.
 
 ## Other languages
 
-Modify the JSON file in the `src/i18n/` directory to translate into the appropriate language.
+Modify the JSON files in the `src/i18n/` directory to translate into the appropriate language.
 
-If you feel that the existing translation is inappropriate, you can send a pull request to modify it at any time.
+If you find existing translations inaccurate or improvable, feel free to submit a pull request.
 
 ## Usage
 
-1. Unzip after downloading the tool - [Download](https://github.com/biuuu/star-rail-warp-export/releases/latest/download/StarRailWarpExport.zip)
-2. Open the warp details page of the game
+1. Download and unzip the tool — [GitHub Releases](https://github.com/AiverAiva/Endfield-Permit-Export/releases/latest)
+2. Open the gacha details page in the game
 
-    ![warp details](/docs/wish-history-en.png)
+   ![warp details](wish-history-en.png)
 
-3. Click the tool's "Load data" button
+3. Click the "Load data" button in the tool
 
-    ![load data](/docs/load-data-en.png)
+   ![load data](load-data-en.png)
 
-    If nothing goes wrong, you'll be prompted to read the data, and the final result will look like this
+   If everything goes well, you'll see a loading prompt and the result will look like this:
 
-    <details>
+   <details>
     <summary>Expand the picture</summary>
 
-    ![preview](/docs/preview-en.png)
-    </details>
+   ![preview](preview-en.png)
+   </details>
 
-If you need to export the data of multiple accounts, you can click the plus button next to it.
+To export data from multiple accounts, click the plus (+) button.
 
-Then switch to the new account of the game, open the wish history, and click the "load data" button in the tool.
+Switch to a new account in the game, open the gacha history, and click "Load data" again.
 
-## Devlopment
+## Development
 
 ```
-# install node modules
+# Install dependencies
 yarn install
 
-# develop
+# Development mode
 yarn dev
 
-# Build a program that can run
+# Build a distributable executable
 yarn build
 ```
 
 ## License
 
-[MIT](https://github.com/biuuu/star-rail-warp-export/blob/main/LICENSE)
-
+[MIT](https://github.com/AiverAiva/Endfield-Permit-Export/blob/main/LICENSE)
