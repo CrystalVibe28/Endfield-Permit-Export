@@ -118,32 +118,71 @@ ipcMain.handle(
       }
 
       const list = resData.data.list || [];
-      console.log(
-        "Found games in account:",
-        list.map((x) => x.appName || x.appCode),
-      );
+      const appNames = list.map((x) => x.appName || x.appCode);
+      console.log("Found games in account:", appNames);
 
       let appInfo = list.find((x) =>
         String(x.appCode).toLowerCase().includes("endfield")
       );
 
       if (!appInfo && list.length > 0) {
+        console.log(
+          "No Endfield appCode match, falling back to first app with bindings.",
+        );
         appInfo = list.find((x) => x.bindingList && x.bindingList.length > 0);
       }
 
-      const bindings = appInfo?.bindingList || [];
+      if (!appInfo) {
+        console.log(
+          "[Auth] No matching app found in account bindings.",
+        );
+        return { ok: false, reason: "NO_GAME" };
+      }
+
+      const appName = appInfo.appName || appInfo.appCode || "Unknown";
+      const bindings = appInfo.bindingList || [];
+
+      if (!bindings.length) {
+        console.log(
+          `[Auth] Game "${appName}" found but bindingList is empty.`,
+        );
+        return { ok: false, reason: "NO_BINDINGS", appName };
+      }
+
+      console.log(`[Auth] Found ${bindings.length} binding(s) for "${appName}":`);
       const result = [];
       for (const binding of bindings) {
-        if (!binding.uid) continue;
+        if (!binding.uid) {
+          console.log("  - Binding missing uid, skipping.");
+          continue;
+        }
         const roles = (binding.roles || []).map((role) => ({
           serverId: String(role.serverId || ""),
           serverName: String(role.serverName || ""),
           nickName: String(role.nickName || ""),
           roleId: String(role.roleId || ""),
         }));
+        console.log(`  - uid: ${binding.uid}, roles: ${roles.length}`);
         result.push({ uid: binding.uid, roles });
       }
-      return result.length > 0 ? result : null;
+
+      if (result.length === 0) {
+        console.log(
+          `[Auth] Bindings exist for "${appName}" but no valid entries with uid/roles.`,
+        );
+        return { ok: false, reason: "NO_ROLES", appName };
+      }
+
+      const totalRoles = result.reduce((sum, b) => sum + b.roles.length, 0);
+      if (totalRoles === 0) {
+        console.log(
+          `[Auth] Bindings exist for "${appName}" but all have empty roles.`,
+        );
+        return { ok: false, reason: "NO_ROLES", appName };
+      }
+
+      console.log(`[Auth] Returning ${result.length} binding(s) with roles.`);
+      return { ok: true, bindings: result };
     } catch (e) {
       console.error("Fetch UID Error:", e.message);
       return null;

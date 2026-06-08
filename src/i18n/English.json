@@ -270,5 +270,7 @@
   "ui.toast.tokenFailed": "Failed to get token, please retry",
   "ui.toast.fetchSuccess": "Data fetched successfully",
   "ui.toast.fetchFailed": "Data fetch failed",
-  "ui.toast.processError": "Error processing character info"
+  "ui.toast.processError": "Error processing character info",
+  "ui.toast.noGameBound": "No Endfield account bound",
+  "ui.toast.gameBoundButNoCharacter": "Logged in, but no game characters found (tutorial may not be completed)"
 }

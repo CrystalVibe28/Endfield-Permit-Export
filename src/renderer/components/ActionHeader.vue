@@ -308,17 +308,27 @@ const handleWebLogin = async () => {
 
       if (oauthToken) {
         state.oauthToken = oauthToken; // Store temporarily
-        const bindings = await ipcRenderer.invoke('FETCH_UID_BY_TOKEN', {
+        const bindingResult = await ipcRenderer.invoke('FETCH_UID_BY_TOKEN', {
           oauthToken,
           provider: state.loginProvider
         });
 
-        if (bindings && bindings.length > 0) {
-          // Store hashUid (b.uid) for the next step
-          state.roles = bindings.flatMap(b => b.roles.map(r => ({ ...r, hashUid: b.uid, provider: state.loginProvider })));
-          if (state.roles.length === 1) {
+        if (bindingResult && bindingResult.ok && bindingResult.bindings.length > 0) {
+          state.roles = bindingResult.bindings.flatMap(b => b.roles.map(r => ({ ...r, hashUid: b.uid, provider: state.loginProvider })));
+          if (state.roles.length === 0) {
+            ElMessage.error(i18n.value.ui.toast.gameBoundButNoCharacter);
+            await ipcRenderer.invoke("CLEAR_LOGIN_SESSION");
+          } else if (state.roles.length === 1) {
             await selectRole(state.roles[0]);
           }
+        } else if (bindingResult && !bindingResult.ok) {
+          const messages = {
+            NO_GAME: i18n.value.ui.toast.noGameBound,
+            NO_BINDINGS: i18n.value.ui.toast.gameBoundButNoCharacter,
+            NO_ROLES: i18n.value.ui.toast.gameBoundButNoCharacter,
+          };
+          ElMessage.error(messages[bindingResult.reason] || i18n.value.ui.toast.roleNotFound);
+          await ipcRenderer.invoke("CLEAR_LOGIN_SESSION");
         } else {
           ElMessage.error(i18n.value.ui.toast.roleNotFound);
           await ipcRenderer.invoke("CLEAR_LOGIN_SESSION");

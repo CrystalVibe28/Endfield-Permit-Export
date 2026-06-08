@@ -219,5 +219,7 @@
   "ui.toast.tokenFailed": "トークンの取得に失敗しました。再試行してください",
   "ui.toast.fetchSuccess": "データの取得に成功しました",
   "ui.toast.fetchFailed": "データの取得に失敗しました",
-  "ui.toast.processError": "キャラクター情報の処理中にエラーが発生しました"
+  "ui.toast.processError": "キャラクター情報の処理中にエラーが発生しました",
+  "ui.toast.noGameBound": "エンドフィールドアカウントが紐付けされていません",
+  "ui.toast.gameBoundButNoCharacter": "ログインしましたが、ゲームキャラクターが見つかりません（チュートリアルが未完了の可能性があります）"
 }

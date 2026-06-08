@@ -267,5 +267,7 @@
   "ui.toast.tokenFailed": "获取 Token 失败，请重试",
   "ui.toast.fetchSuccess": "数据抓取成功",
   "ui.toast.fetchFailed": "数据抓取失败",
-  "ui.toast.processError": "处理角色信息时发生错误"
+  "ui.toast.processError": "处理角色信息时发生错误",
+  "ui.toast.noGameBound": "未绑定终末地账号",
+  "ui.toast.gameBoundButNoCharacter": "已登录账号，但未找到游戏角色（可能尚未完成新手教程）"
 }
