@@ -1,4 +1,4 @@
-const { clipboard, ipcMain, BrowserWindow } = require("electron");
+const { clipboard, ipcMain, BrowserWindow, session } = require("electron");
 const path = require("path");
 const fetch = require("electron-fetch").default;
 const { getUrl, deleteData } = require("./getData");
@@ -194,7 +194,14 @@ ipcMain.handle("DELETE_DATA", async (event, uid, action) => {
   await deleteData(uid, action);
 });
 
-ipcMain.handle("OPEN_LOGIN_WINDOW", async (event, provider) => {
+ipcMain.handle("OPEN_LOGIN_WINDOW", async (event, provider, options = {}) => {
+  if (options.forceFresh) {
+    const ses = session.fromPartition("persist:hg-login");
+    await ses.clearStorageData();
+    await ses.clearCache();
+    console.log("[Auth] Forced fresh login session.");
+  }
+
   const url = provider === "gryphline"
     ? "https://user.gryphline.com/"
     : "https://user.hypergryph.com/";
@@ -345,9 +352,9 @@ ipcMain.handle("AUTO_GET_TOKEN", async (event, provider) => {
 });
 
 ipcMain.handle("CLEAR_LOGIN_SESSION", async () => {
-  const { session } = require("electron");
   const ses = session.fromPartition("persist:hg-login");
   await ses.clearStorageData();
+  await ses.clearCache();
   console.log("[Auth] Login session cleared.");
   return true;
 });

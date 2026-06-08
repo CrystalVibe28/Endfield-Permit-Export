@@ -297,7 +297,7 @@ const fetchData = async (url) => {
 const handleWebLogin = async () => {
   state.isLoggingIn = true;
   try {
-    const token = await ipcRenderer.invoke('OPEN_LOGIN_WINDOW', state.loginProvider);
+    const token = await ipcRenderer.invoke('OPEN_LOGIN_WINDOW', state.loginProvider, { forceFresh: true });
 
     if (token) {
       state.capturedToken = token;
@@ -347,30 +347,21 @@ const selectRole = async (role, isAuto = false) => {
     ? 'https://ef-webview.gryphline.com'
     : 'https://ef-webview.hypergryph.com';
 
-  // Token Chain: loginToken (capturedToken) -> oauthToken -> u8Token
   let loginToken = role.capturedToken || state.capturedToken;
-
-  // If we are passing a fresh capturedToken (auto-refresh), 
-  // we must ignore existing tokens and restart the chain.
   let oauthToken = role.capturedToken ? null : (role.oauthToken || state.oauthToken);
-  let hashUid = role.hashUid || role.uid; // b.uid (hash)
-  let u8Token = role.capturedToken ? null : role.token; // The final token for Gacha API
+  let hashUid = role.hashUid || role.uid;
+  let u8Token = role.capturedToken ? null : role.token;
 
+  let success = false;
 
   try {
-    // 1. If we only have loginToken, get oauthToken
     if (loginToken && !oauthToken) {
-      // Pre-validate token before attempting exchange
       const isValid = await ipcRenderer.invoke('VALIDATE_ACCOUNT_TOKEN', {
         token: loginToken,
         provider
       });
 
-      if (!isValid) {
-        state.status = "failed";
-        ElMessage.error(ui.value.hint.tokenExpired);
-        return;
-      }
+      if (!isValid) throw new Error("TOKEN_EXPIRED");
 
       state.log = i18n.value.log.login.fetchingOAuth;
       oauthToken = await ipcRenderer.invoke('GET_OAUTH_TOKEN', {
@@ -379,9 +370,6 @@ const selectRole = async (role, isAuto = false) => {
       });
     }
 
-    // 2. If we have oauthToken, ensure we have hashUid and fetch u8Token
-    // If it's a new login, bindings were fetched in handleWebLogin. 
-    // If it's auto-refresh, hashUid should be in the 'role' object (from linkedUsers).
     if (oauthToken && hashUid) {
       state.log = i18n.value.log.login.fetchingU8;
       const freshU8 = await ipcRenderer.invoke('GET_U8_TOKEN_BY_UID', {
@@ -392,13 +380,9 @@ const selectRole = async (role, isAuto = false) => {
       if (freshU8) u8Token = freshU8;
     }
 
-    if (!u8Token) {
-      state.status = "failed";
-      ElMessage.error(i18n.value.ui.toast.tokenFailed);
-      return;
-    }
+    if (!u8Token) throw new Error("TOKEN_FAILED");
 
-    const appUid = String(role.roleId); // roleId is the numeric game UID
+    const appUid = String(role.roleId);
 
     const data = await ipcRenderer.invoke("FETCH_DATA", {
       token: u8Token,
@@ -409,49 +393,58 @@ const selectRole = async (role, isAuto = false) => {
       uid: appUid
     });
 
-    if (data) {
-      state.dataMap = data.dataMap;
-      state.current = appUid;
-      state.status = "loaded";
+    if (!data) throw new Error("FETCH_FAILED");
 
-      // Update/Save to linkedUsers
-      const users = JSON.parse(JSON.stringify(state.linkedUsers));
-      const newUser = {
-        uid: appUid,
-        gameUid: role.uid || role.hashUid,
-        roleId: role.roleId,
-        nickName: role.nickName,
-        serverId: role.serverId,
-        serverName: role.serverName,
-        provider: provider,
-        token: u8Token,
-        hashUid: hashUid,
-        capturedToken: loginToken // Store the long-lived login token
-      };
-      const idx = users.findIndex(u => u.uid === appUid);
-      if (idx !== -1) users[idx] = newUser;
-      else users.push(newUser);
-      state.linkedUsers = users;
-      await ipcRenderer.invoke("SAVE_CONFIG", ["users", JSON.parse(JSON.stringify(users))]);
+    state.dataMap = data.dataMap;
+    state.current = appUid;
+    state.status = "loaded";
 
-      await ipcRenderer.invoke("CLEAR_LOGIN_SESSION");
+    const users = JSON.parse(JSON.stringify(state.linkedUsers));
+    const newUser = {
+      uid: appUid,
+      gameUid: role.uid || role.hashUid,
+      roleId: role.roleId,
+      nickName: role.nickName,
+      serverId: role.serverId,
+      serverName: role.serverName,
+      provider: provider,
+      token: u8Token,
+      hashUid: hashUid,
+      capturedToken: loginToken
+    };
+    const idx = users.findIndex(u => u.uid === appUid);
+    if (idx !== -1) users[idx] = newUser;
+    else users.push(newUser);
+    state.linkedUsers = users;
+    await ipcRenderer.invoke("SAVE_CONFIG", ["users", JSON.parse(JSON.stringify(users))]);
+    await ipcRenderer.invoke("CLEAR_LOGIN_SESSION");
 
-      if (!isAuto) {
-        state.roles = [];
-        state.capturedToken = null;
-        state.oauthToken = null;
-      }
-
-      emit('data-updated', { dataMap: state.dataMap, current: state.current });
-      if (!isAuto) ElMessage.success(i18n.value.ui.toast.fetchSuccess);
-    } else {
-      state.status = "failed";
-      if (!isAuto) ElMessage.error(i18n.value.ui.toast.fetchFailed);
+    if (!isAuto) {
+      state.roles = [];
+      state.capturedToken = null;
+      state.oauthToken = null;
     }
+
+    emit('data-updated', { dataMap: state.dataMap, current: state.current });
+    if (!isAuto) ElMessage.success(i18n.value.ui.toast.fetchSuccess);
+
+    success = true;
   } catch (e) {
     console.error("selectRole error:", e);
     state.status = "failed";
-    ElMessage.error(i18n.value.ui.toast.processError);
+
+    const msg = (
+      e.message === "TOKEN_EXPIRED" ? ui.value.hint.tokenExpired :
+      e.message === "TOKEN_FAILED" ? i18n.value.ui.toast.tokenFailed :
+      e.message === "FETCH_FAILED" ? i18n.value.ui.toast.fetchFailed :
+      i18n.value.ui.toast.processError
+    );
+    const skipToast = e.message === "FETCH_FAILED" && isAuto;
+    if (!skipToast) ElMessage.error(msg);
+  } finally {
+    if (!success) {
+      await ipcRenderer.invoke("CLEAR_LOGIN_SESSION");
+    }
   }
 };
 
